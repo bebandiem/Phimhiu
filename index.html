@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU - Ultimate Cinema</title>
+    <title>PHIMHIU - Pro Cinema</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
@@ -20,19 +20,17 @@
 
         body { 
             background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; 
-            margin: 0; transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden;
+            margin: 0; transition: 0.5s ease; overflow-x: hidden;
         }
 
-        /* 1. HIỆU ỨNG CHUYỂN CẢNH (ANIMATIONS) */
         .fade-in { animation: fadeIn 0.8s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         .container { max-width: 1200px; margin: auto; padding: 20px; }
         
         .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-        h1 { letter-spacing: 8px; color: var(--primary); cursor: pointer; font-size: 32px; font-weight: 900; margin: 0; text-shadow: 0 0 20px rgba(229, 9, 20, 0.3); }
+        h1 { letter-spacing: 8px; color: var(--primary); cursor: pointer; font-size: 32px; font-weight: 900; margin: 0; }
 
-        /* 2. THANH TÌM KIẾM BIẾN HÌNH */
         .search-wrapper { position: relative; max-width: 450px; margin: 0 auto 50px; transition: 0.4s; }
         .search-wrapper:focus-within { max-width: 600px; }
         input { 
@@ -41,20 +39,17 @@
             color: var(--text); font-size: 16px; outline: none; 
             backdrop-filter: blur(15px); transition: 0.4s; box-sizing: border-box;
         }
-        input:focus { border-color: var(--primary); background: rgba(229, 9, 20, 0.05); box-shadow: 0 0 30px rgba(229, 9, 20, 0.15); }
+        input:focus { border-color: var(--primary); background: rgba(229, 9, 20, 0.05); }
 
-        /* 3. CHẾ ĐỘ RẠP PHIM (THEATER MODE) */
         #video-container { 
             width: 100%; margin-bottom: 40px; border-radius: 20px; 
             overflow: hidden; background: #000; display: none; 
             aspect-ratio: 16/9; position: relative;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.7);
-            z-index: 100; transition: 0.5s;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.7); z-index: 100; 
         }
         body.theater-mode { background: #000; }
-        body.theater-mode .header-nav, body.theater-mode .search-wrapper, body.theater-mode .section-title { opacity: 0.1; pointer-events: none; }
+        body.theater-mode .header-nav, body.theater-mode .search-wrapper, body.theater-mode .section-title { opacity: 0.05; pointer-events: none; }
 
-        /* 4. LƯỚI POSTER (GRID VIEW) & KÍNH MỜ */
         .movie-grid { 
             display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
             gap: 25px; margin-top: 20px;
@@ -64,17 +59,15 @@
             transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; 
             border: 1px solid var(--glass-border); position: relative; backdrop-filter: blur(5px);
         }
-        .movie-card:hover { transform: scale(1.05); z-index: 5; border-color: var(--primary); }
-        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .movie-card:hover { transform: scale(1.05); border-color: var(--primary); }
+        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222; }
         .movie-card .info { padding: 15px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); position: absolute; bottom: 0; width: 100%; box-sizing: border-box; }
         .movie-card h3 { font-size: 14px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
-        .movie-card p { font-size: 12px; color: var(--primary); margin: 5px 0 0; }
+        .movie-card p { font-size: 11px; color: var(--primary); margin: 5px 0 0; }
 
-        /* Chi tiết phim chuyên nghiệp */
         #detail-screen { 
             display: none; background: var(--glass); backdrop-filter: blur(30px);
-            padding: 40px; border-radius: 30px; border: 1px solid var(--glass-border);
-            margin-top: 20px;
+            padding: 40px; border-radius: 30px; border: 1px solid var(--glass-border); margin-top: 20px;
         }
         .detail-flex { display: flex; gap: 40px; align-items: flex-start; }
         .detail-flex img { width: 220px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
@@ -85,7 +78,7 @@
             padding: 12px 20px; min-width: 60px; text-align: center; border-radius: 12px; cursor: pointer; 
             font-size: 13px; font-weight: bold; transition: 0.3s;
         }
-        .ep-btn:hover, .ep-btn.active { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(229, 9, 20, 0.4); }
+        .ep-btn:hover, .ep-btn.active { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-3px); }
 
         .section-title { font-size: 16px; letter-spacing: 3px; color: var(--primary); margin: 50px 0 25px; text-transform: uppercase; font-weight: 800; }
 
@@ -93,7 +86,7 @@
 
         @media (max-width: 768px) {
             .detail-flex { flex-direction: column; text-align: center; }
-            .detail-flex img { width: 160px; }
+            .detail-flex img { width: 160px; margin: auto; }
             .movie-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
         }
     </style>
@@ -103,13 +96,11 @@
     <div class="container fade-in">
         <div class="header-nav">
             <h1 onclick="window.location.href='index.html'">PHIMHIU</h1>
-            <div style="display: flex; gap: 20px; align-items: center;">
-                <button style="background:none; border:none; color:var(--text); cursor:pointer; font-size:22px;" onclick="toggleTheme()">🌓</button>
-            </div>
+            <button style="background:none; border:none; color:var(--text); cursor:pointer; font-size:22px;" onclick="toggleTheme()">🌓</button>
         </div>
         
         <div class="search-wrapper">
-            <input type="text" id="searchInput" placeholder="Hôm nay bạn muốn xem gì?" onkeypress="handleSearch(event)">
+            <input type="text" id="searchInput" placeholder="Tìm tên phim để xem ngay..." onkeypress="handleSearch(event)">
         </div>
 
         <div id="video-container">
@@ -122,19 +113,25 @@
         
         <div id="detail-screen" class="fade-in">
             <div class="detail-flex" id="movie-info-content"></div>
-            <div class="section-title">Các tập phim</div>
+            <div class="section-title">Danh sách tập phim</div>
             <div class="episode-list" id="episodes"></div>
         </div>
 
         <div id="history-section">
-            <div class="section-title">Tiếp tục theo dõi</div>
+            <div class="section-title">Vừa xem gần đây</div>
             <div id="history-grid" class="movie-grid"></div>
         </div>
     </div>
 
     <script>
         let dp;
-        const IMG_URL = "https://phimimg.com/";
+        
+        // HÀM FIX LỖI ẢNH - KHÔNG ĐƯỢC XÓA
+        function fixImg(url) {
+            if (!url) return 'https://via.placeholder.com/200x300?text=No+Image';
+            if (url.startsWith('http')) return url;
+            return "https://phimimg.com/" + url;
+        }
 
         window.onload = () => {
             if(localStorage.getItem('theme') === 'light') toggleTheme();
@@ -160,9 +157,7 @@
 
         function checkDeepLink() {
             const hash = window.location.hash;
-            if (hash.startsWith('#/phim/')) {
-                showDetail(hash.replace('#/phim/', ''));
-            }
+            if (hash.startsWith('#/phim/')) showDetail(hash.replace('#/phim/', ''));
         }
 
         async function handleSearch(event) {
@@ -174,7 +169,6 @@
                     displayResults(data.data.items);
                     document.getElementById('detail-screen').style.display = 'none';
                     document.getElementById('video-container').style.display = 'none';
-                    document.getElementById('history-section').style.display = 'none';
                 }
             }
         }
@@ -183,7 +177,7 @@
             const grid = document.getElementById('results-grid');
             grid.innerHTML = items.map(item => `
                 <div class="movie-card fade-in" onclick="window.location.hash='/phim/${item.slug}'">
-                    <img src="${IMG_URL + item.thumb_url}" alt="${item.name}">
+                    <img src="${fixImg(item.thumb_url)}" alt="${item.name}" onerror="this.src='https://via.placeholder.com/200x300?text=Error'">
                     <div class="info">
                         <h3>${item.name}</h3>
                         <p>${item.year}</p>
@@ -201,8 +195,9 @@
             document.getElementById('history-section').style.display = 'none';
             document.getElementById('detail-screen').style.display = 'block';
             
+            const poster = fixImg(movie.thumb_url);
             document.getElementById('movie-info-content').innerHTML = `
-                <img src="${movie.thumb_url}" alt="poster">
+                <img src="${poster}" alt="poster" onerror="this.src='https://via.placeholder.com/200x300?text=Error'">
                 <div>
                     <h2 id="current-movie-title" style="margin:0; font-size:32px;">${movie.name}</h2>
                     <p style="color:var(--primary); font-weight:bold; margin:10px 0;">${movie.origin_name} • ${movie.year}</p>
@@ -216,6 +211,7 @@
                      onclick="playSmart('${ep.link_m3u8}', '${ep.link_embed}', '${slug}', '${ep.name}')">${ep.name}</div>
             `).join('');
 
+            // TÍNH NĂNG TỰ ĐỘNG PHÁT TẬP ĐANG XEM DỞ
             const lastEp = localStorage.getItem('last_ep_' + slug);
             if(lastEp) {
                 const epObj = episodes.find(e => e.name === lastEp);
@@ -226,9 +222,13 @@
         function playSmart(m3u8Url, embedUrl, slug, epName) {
             const container = document.getElementById('video-container');
             const movieName = document.getElementById('current-movie-title').innerText;
+            const currentThumb = document.querySelector('#movie-info-content img').src;
+            
             container.style.display = 'block';
+            
+            // LƯU TRẠNG THÁI XEM
             localStorage.setItem('last_ep_' + slug, epName);
-            saveToWatchHistory(movieName, slug, document.querySelector('#movie-info-content img').src);
+            saveToWatchHistory(movieName, slug, currentThumb);
 
             if (m3u8Url) {
                 document.getElementById('iframe-player').style.display = 'none';
@@ -238,6 +238,7 @@
                     container: document.getElementById('dplayer'),
                     autoplay: true, video: { url: m3u8Url, type: 'hls' }, shortcut: true
                 });
+                // HIỂN THỊ TÊN PHIM + TẬP TRÊN PLAYER
                 const t = document.createElement('div');
                 t.innerHTML = `${movieName} - Tập ${epName}`;
                 t.style = "position:absolute; top:20px; left:20px; z-index:10; font-size:16px; color:#fff; text-shadow:2px 2px 4px #000; font-weight:bold; pointer-events:none; opacity:0.8;";
@@ -263,15 +264,17 @@
         function displayWatchHistory() {
             const h = JSON.parse(localStorage.getItem('watchHistory')) || [];
             const grid = document.getElementById('history-grid');
+            const section = document.getElementById('history-section');
             if (h.length > 0) {
+                section.style.display = 'block';
                 grid.innerHTML = h.map(i => `
                     <div class="movie-card fade-in" onclick="window.location.hash='/phim/${i.slug}'">
-                        <img src="${i.thumb}" alt="${i.name}">
+                        <img src="${fixImg(i.thumb)}" alt="${i.name}" onerror="this.src='https://via.placeholder.com/200x300?text=Error'">
                         <div class="info"><h3>${i.name}</h3></div>
                     </div>
                 `).join('');
             } else {
-                document.getElementById('history-section').style.display = 'none';
+                section.style.display = 'none';
             }
         }
     </script>
