@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU - Pro Cinema</title>
+    <title>PHIMHIU - Auto Resume</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
@@ -21,10 +21,13 @@
         .search-box { width: 100%; max-width: 500px; margin: 0 auto 20px; }
         input { width: 100%; padding: 12px 20px; border-radius: 25px; border: 1px solid var(--border); background: var(--item-bg); color: var(--text); font-size: 16px; outline: none; box-sizing: border-box; }
 
-        /* KHU VỰC TRÌNH PHÁT LINH HOẠT */
-        #video-container { width: 100%; margin-bottom: 20px; border-radius: 8px; overflow: hidden; background: #000; display: none; aspect-ratio: 16/9; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        /* KHU VỰC TRÌNH PHÁT */
+        #video-container { width: 100%; margin-bottom: 20px; border-radius: 8px; overflow: hidden; background: #000; display: none; aspect-ratio: 16/9; position: relative; }
         #dplayer { width: 100%; height: 100%; }
         #iframe-player { width: 100%; height: 100%; border: none; display: none; }
+
+        /* THÔNG TIN TRÊN TRÌNH PHÁT */
+        .player-info-overlay { position: absolute; top: 10px; left: 15px; background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 4px; font-size: 11px; color: #fff; pointer-events: none; z-index: 10; border-left: 2px solid var(--primary); }
 
         .list { text-align: left; margin-top: 10px; }
         .item { color: var(--sub-text); text-decoration: none; display: block; padding: 12px; border-bottom: 1px solid var(--border); transition: 0.2s; cursor: pointer; }
@@ -36,14 +39,13 @@
         .episode-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px; margin-top: 15px; }
         .ep-btn { background: var(--border); color: var(--text); padding: 8px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; border: 1px solid transparent; }
         .ep-btn.active { background: var(--primary); color: #fff; font-weight: bold; }
-        .ep-btn.watched { border-color: var(--primary); color: var(--primary); }
     </style>
 </head>
 <body data-theme="dark">
 
     <div class="container">
         <div class="header-nav">
-            <h1 onclick="location.reload()">PHIMHIU</h1>
+            <h1 onclick="window.location.href='index.html'">PHIMHIU</h1>
             <button class="theme-toggle" onclick="toggleTheme()">Sáng/Tối</button>
         </div>
         
@@ -52,6 +54,7 @@
         </div>
 
         <div id="video-container">
+            <div class="player-info-overlay" id="overlay-text" style="display:none"></div>
             <div id="dplayer"></div>
             <iframe id="iframe-player" src="" allowfullscreen></iframe>
         </div>
@@ -68,9 +71,21 @@
         let dp;
 
         window.onload = () => {
-            displayWatchHistory();
             if(localStorage.getItem('theme') === 'light') toggleTheme();
+            checkDeepLink();
+            displayWatchHistory();
         };
+
+        // Theo dõi thay đổi của Link ảo (Hash)
+        window.onhashchange = checkDeepLink;
+
+        function checkDeepLink() {
+            const hash = window.location.hash;
+            if (hash.startsWith('#/phim/')) {
+                const slug = hash.replace('#/phim/', '');
+                showDetail(slug);
+            }
+        }
 
         function toggleTheme() {
             const body = document.body;
@@ -96,7 +111,7 @@
         function displayResults(items) {
             const container = document.getElementById('results');
             container.innerHTML = items.map(item => `
-                <div class="item" onclick="showDetail('${item.slug}')">🎬 ${item.name} (${item.year})</div>
+                <div class="item" onclick="window.location.hash='/phim/${item.slug}'">🎬 ${item.name} (${item.year})</div>
             `).join('');
         }
 
@@ -104,14 +119,13 @@
             const response = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
             const data = await response.json();
             const movie = data.data.item;
-            saveToWatchHistory(movie.name, movie.slug);
             
             document.getElementById('results').innerHTML = '';
             document.getElementById('detail-screen').style.display = 'block';
             document.getElementById('movie-content').innerHTML = `
                 <div class="movie-info">
                     <img src="${movie.thumb_url}" alt="poster">
-                    <div><h2 style="margin:0">${movie.name}</h2><p style="color:var(--sub-text); font-size:12px;">${movie.content.replace(/<[^>]*>?/gm, '').substring(0,80)}...</p></div>
+                    <div><h2 id="current-movie-name" style="margin:0">${movie.name}</h2><p style="color:var(--sub-text); font-size:12px;">${movie.content.replace(/<[^>]*>?/gm, '').substring(0,80)}...</p></div>
                 </div>
             `;
             const episodes = movie.episodes[0].server_data;
@@ -119,18 +133,32 @@
                 <div id="ep-${ep.name}" class="ep-btn" 
                      onclick="playSmart('${ep.link_m3u8}', '${ep.link_embed}', '${slug}', '${ep.name}')">Tập ${ep.name}</div>
             `).join('');
+
+            // TỰ ĐỘNG CHƠI TẬP CUỐI CÙNG ĐANG XEM (Nếu có)
+            const lastEp = localStorage.getItem('last_ep_' + slug);
+            if(lastEp) {
+                const epObj = episodes.find(e => e.name === lastEp);
+                if(epObj) playSmart(epObj.link_m3u8, epObj.link_embed, slug, lastEp);
+            }
         }
 
-        // HÀM CHỌN PLAYER THÔNG MINH
         function playSmart(m3u8Url, embedUrl, slug, epName) {
-            document.getElementById('video-container').style.display = 'block';
-            window.scrollTo({top: 0, behavior: 'smooth'});
+            const container = document.getElementById('video-container');
+            const overlay = document.getElementById('overlay-text');
+            const movieName = document.getElementById('current-movie-name').innerText;
+            
+            container.style.display = 'block';
+            overlay.style.display = 'block';
+            overlay.innerText = `${movieName} - Tập ${epName}`;
+            
+            // Lưu lại tập đang xem cuối cùng của phim này
+            localStorage.setItem('last_ep_' + slug, epName);
+            saveToWatchHistory(movieName, slug);
 
             if (m3u8Url && m3u8Url !== "") {
-                // Ưu tiên 1: Chạy DPlayer
                 document.getElementById('iframe-player').style.display = 'none';
                 document.getElementById('dplayer').style.display = 'block';
-                if(dp) dp.destroy(); // Xóa trình phát cũ nếu có
+                if(dp) dp.destroy();
                 dp = new DPlayer({
                     container: document.getElementById('dplayer'),
                     autoplay: true,
@@ -138,16 +166,16 @@
                     shortcut: true
                 });
             } else {
-                // Ưu tiên 2: Chạy Iframe
                 if(dp) dp.pause();
                 document.getElementById('dplayer').style.display = 'none';
                 document.getElementById('iframe-player').style.display = 'block';
                 document.getElementById('iframe-player').src = embedUrl;
             }
 
-            // Đánh dấu tập đang xem
             document.querySelectorAll('.ep-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('ep-' + epName).classList.add('active');
+            const btn = document.getElementById('ep-' + epName);
+            if(btn) btn.classList.add('active');
+            window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
         function saveToWatchHistory(name, slug) {
@@ -162,7 +190,7 @@
             const container = document.getElementById('watch-history');
             if (history.length > 0) {
                 container.innerHTML = `<div style="font-size:12px; color:var(--primary); margin:20px 0 10px;">XEM GẦN ĐÂY</div>` + 
-                history.map(item => `<div class="item" onclick="showDetail('${item.slug}')">🕒 ${item.name}</div>`).join('');
+                history.map(item => `<div class="item" onclick="window.location.hash='/phim/${item.slug}'">🕒 ${item.name}</div>`).join('');
             }
         }
     </script>
