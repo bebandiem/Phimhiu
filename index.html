@@ -7,11 +7,14 @@
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: auto; text-align: center; }
-        h1 { letter-spacing: 5px; color: #e50914; margin-top: 50px; }
+        h1 { letter-spacing: 5px; color: #e50914; margin-top: 50px; cursor: pointer; }
         input { width: 100%; padding: 15px; border-radius: 30px; border: 1px solid #333; background: #111; color: #fff; font-size: 16px; outline: none; margin-bottom: 20px; box-sizing: border-box; }
         .list { text-align: left; margin-top: 20px; }
         .item { color: #888; text-decoration: none; display: block; padding: 15px; border-bottom: 1px solid #222; }
         .item:hover { color: #fff; background: #111; cursor: pointer; }
+        
+        /* Lịch sử xem */
+        .history-title { font-size: 12px; color: #444; letter-spacing: 2px; text-align: left; margin-top: 30px; text-transform: uppercase; }
         
         #detail-screen { display: none; text-align: left; background: #111; padding: 20px; border-radius: 10px; margin-top: 20px; }
         .movie-info { display: flex; gap: 20px; margin-bottom: 20px; }
@@ -20,24 +23,21 @@
         .ep-btn { background: #333; color: #fff; padding: 10px; text-align: center; border-radius: 5px; cursor: pointer; font-size: 13px; }
         .ep-btn:hover { background: #e50914; }
         
-        /* Trình phát Video chuyên nghiệp */
         #player-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; flex-direction: column; z-index: 100; }
         .iframe-container { position: relative; flex-grow: 1; width: 100%; height: 100%; }
         iframe { width: 100%; height: 100%; border: none; }
-        
-        /* Bộ điều khiển ảo */
-        .controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; background: rgba(0,0,0,0.6); padding: 15px 25px; border-radius: 50px; backdrop-filter: blur(5px); pointer-events: auto; }
-        .control-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; transition: 0.2s; }
-        .control-btn:hover { color: #e50914; transform: scale(1.2); }
         .btn-back { padding: 15px; color: #fff; background: #222; cursor: pointer; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container" id="home-screen">
-        <h1>CINEMA</h1>
+        <h1 onclick="location.reload()">CINEMA</h1>
         <input type="text" id="searchInput" placeholder="Tìm tên phim..." onkeypress="handleSearch(event)">
+        
         <div id="results" class="list"></div>
+
+        <div id="history-container" class="list"></div>
         
         <div id="detail-screen">
             <div id="movie-content"></div>
@@ -49,16 +49,13 @@
         <div class="btn-back" onclick="closePlayer()">← QUAY LẠI</div>
         <div class="iframe-container">
             <iframe id="videoFrame" src="" allow="autoplay; fullscreen" allowfullscreen></iframe>
-            
-            <div class="controls">
-                <button class="control-btn" onclick="seek(-10)">⏪ 10s</button>
-                <button class="control-btn" id="playPauseBtn" onclick="togglePlay()">⏸</button>
-                <button class="control-btn" onclick="seek(10)">10s ⏩</button>
-            </div>
         </div>
     </div>
 
     <script>
+        // Tải lịch sử khi vừa mở trang
+        window.onload = displayHistory;
+
         async function handleSearch(event) {
             if (event.key === 'Enter') {
                 const query = document.getElementById('searchInput').value;
@@ -66,6 +63,7 @@
                 const data = await response.json();
                 displayResults(data.data.items);
                 document.getElementById('detail-screen').style.display = 'none';
+                document.getElementById('history-container').innerHTML = ''; // Ẩn lịch sử khi tìm kiếm
             }
         }
 
@@ -80,7 +78,12 @@
             const response = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
             const data = await response.json();
             const movie = data.data.item;
+            
+            // Lưu vào lịch sử LocalStorage
+            saveToHistory(movie.name, movie.slug);
+
             document.getElementById('results').innerHTML = '';
+            document.getElementById('history-container').innerHTML = '';
             document.getElementById('detail-screen').style.display = 'block';
             document.getElementById('movie-content').innerHTML = `
                 <div class="movie-info">
@@ -98,7 +101,26 @@
             `).join('');
         }
 
-        // CÁC HÀM ĐIỀU KHIỂN
+        // HÀM LƯU LỊCH SỬ VÀO TRÌNH DUYỆT
+        function saveToHistory(name, slug) {
+            let history = JSON.parse(localStorage.getItem('movieHistory')) || [];
+            // Xóa nếu đã tồn tại để đẩy lên đầu
+            history = history.filter(item => item.slug !== slug);
+            history.unshift({ name, slug, time: new Date().toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) });
+            localStorage.setItem('movieHistory', JSON.stringify(history.slice(0, 5))); // Lưu 5 phim gần nhất
+        }
+
+        function displayHistory() {
+            const history = JSON.parse(localStorage.getItem('movieHistory')) || [];
+            if (history.length > 0) {
+                const container = document.getElementById('history-container');
+                container.innerHTML = `<div class="history-title">Xem gần đây</div>` + 
+                history.map(item => `
+                    <div class="item" onclick="showDetail('${item.slug}')">🕒 ${item.name} <span style="float:right; font-size:10px">${item.time}</span></div>
+                `).join('');
+            }
+        }
+
         function playVideo(url) {
             document.getElementById('videoFrame').src = url;
             document.getElementById('player-screen').style.display = 'flex';
@@ -107,19 +129,7 @@
         function closePlayer() {
             document.getElementById('player-screen').style.display = 'none';
             document.getElementById('videoFrame').src = '';
-        }
-
-        // Giải pháp giả lập điều khiển cho Iframe
-        function togglePlay() {
-            const btn = document.getElementById('playPauseBtn');
-            const iframe = document.getElementById('videoFrame');
-            // Gửi lệnh qua postMessage (tùy thuộc trình phát hỗ trợ)
-            iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-            btn.innerText = btn.innerText === '⏸' ? '▶' : '⏸';
-        }
-
-        function seek(seconds) {
-            alert("Lưu ý: Do bảo mật của trình duyệt đối với Iframe nhúng, nút tua có thể không hoạt động trên một số nguồn phim. Bạn hãy sử dụng thanh kéo trực tiếp của trình phát bên trong nhé!");
+            displayHistory(); // Cập nhật lại lịch sử khi quay về
         }
     </script>
 </body>
