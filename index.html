@@ -3,280 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU - Netflix Style</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>PHIMHIU - Netflix Edition</title>
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.11/dist/framer-motion.js"></script>
-
+    
     <style>
-        :root { --netflix-red: #e50914; }
-        body { background: #000; color: #fff; margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .glass-panel { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%); }
-        .dplayer-controller { display: none !important; } /* Ẩn control mặc định của DPlayer để dùng UI Netflix */
-        
-        input[type='range'] {
-            accent-color: var(--netflix-red);
-            cursor: pointer;
+        :root {
+            --netflix-red: #e50914;
+            --bg: #050505; --text: #ffffff;
+            --glass: rgba(0, 0, 0, 0.7);
         }
 
-        .netflix-loader {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #333;
-            border-top-color: var(--netflix-red);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+
+        /* HIDE DPLAYER DEFAULT UI */
+        .dplayer-controller, .dplayer-controller-mask { display: none !important; }
+
+        /* NETFLIX OVERLAY SYSTEM */
+        #video-container { 
+            width: 100%; margin-bottom: 40px; border-radius: 12px; 
+            overflow: hidden; background: #000; display: none; 
+            aspect-ratio: 16/9; position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        #netflix-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 100; display: flex; flex-direction: column; justify-content: space-between;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.6) 100%);
+            transition: opacity 0.4s ease;
+            opacity: 0; /* Mặc định ẩn */
+        }
+        #video-container:hover #netflix-overlay, 
+        #netflix-overlay.active { opacity: 1; }
+
+        /* Center Controls */
+        .center-controls {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            display: flex; align-items: center; gap: 50px;
+        }
+        .n-btn {
+            background: none; border: none; color: white; cursor: pointer;
+            font-size: 30px; transition: 0.2s; opacity: 0.9;
+        }
+        .n-btn:hover { transform: scale(1.2); opacity: 1; color: var(--netflix-red); }
+        .n-btn-main {
+            width: 90px; height: 90px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+            font-size: 45px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Netflix Progress Bar */
+        .bottom-controls { padding: 0 30px 20px 30px; }
+        .progress-container {
+            width: 100%; height: 4px; background: rgba(255,255,255,0.3);
+            cursor: pointer; position: relative; margin-bottom: 15px;
+            transition: height 0.1s;
+        }
+        .progress-container:hover { height: 8px; }
+        .progress-bar { height: 100%; background: var(--netflix-red); width: 0%; position: relative; }
+        .progress-bar::after {
+            content: ''; position: absolute; right: -5px; top: 50%; transform: translateY(-50%);
+            width: 12px; height: 12px; background: var(--netflix-red); border-radius: 50%; opacity: 0;
+        }
+        .progress-container:hover .progress-bar::after { opacity: 1; }
+
+        .time-display { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+
+        /* Theme & Grid */
+        .header-nav { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 40px; }
+        h1 { letter-spacing: 5px; color: var(--netflix-red); cursor: pointer; margin: 0; }
+        .search-wrapper input { 
+            width: 100%; padding: 15px 25px; border-radius: 4px; 
+            border: none; background: #333; color: white; font-size: 16px; box-sizing: border-box;
+        }
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+        .movie-card { border-radius: 4px; overflow: hidden; cursor: pointer; transition: 0.3s; }
+        .movie-card:hover { transform: scale(1.05); z-index: 2; }
+        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+
+        .ep-btn { 
+            background: #333; padding: 10px 20px; border-radius: 4px; cursor: pointer; 
+            margin: 5px; display: inline-block; transition: 0.2s;
+        }
+        .ep-btn.active { background: var(--netflix-red); }
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { motion, AnimatePresence } = window.Motion;
+<div class="container">
+    <div class="header-nav">
+        <h1 onclick="location.reload()">PHIMHIU</h1>
+    </div>
 
-        const API_BASE = "https://phimapi.com/v1/api";
-        const IMG_CDN = "https://img.phimapi.com/";
+    <div class="search-wrapper" style="max-width: 500px; margin: 0 auto 40px;">
+        <input type="text" id="searchInput" placeholder="Tìm kiếm phim..." onkeypress="handleSearch(event)">
+    </div>
 
-        const Icon = ({ name, size = 24, className = "" }) => {
-            useEffect(() => { lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} className={className} style={{width: size, height: size}}></i>;
-        };
+    <!-- VIDEO PLAYER AREA -->
+    <div id="video-container">
+        <!-- NETFLIX OVERLAY UI -->
+        <div id="netflix-overlay">
+            <div class="center-controls">
+                <button class="n-btn" onclick="rewind(10)"><i class="fas fa-backward"></i></button>
+                <button class="n-btn n-btn-main" onclick="togglePlayPause()">
+                    <i class="fas fa-play" id="main-play-icon"></i>
+                </button>
+                <button class="n-btn" onclick="forward(10)"><i class="fas fa-forward"></i></button>
+            </div>
 
-        function App() {
-            const [theme, setTheme] = useState('dark');
-            const [searchQuery, setSearchQuery] = useState('');
-            const [results, setResults] = useState([]);
-            const [currentMovie, setCurrentMovie] = useState(null);
-            const [playingEp, setPlayingEp] = useState(null);
-            const [loading, setLoading] = useState(false);
-            
-            // Player States
-            const [isPlaying, setIsPlaying] = useState(false);
-            const [progress, setProgress] = useState(0);
-            const [showUI, setShowUI] = useState(true);
-            const [volume, setVolume] = useState(100);
-            const [videoMode, setVideoMode] = useState(null);
-            
-            const dpRef = useRef(null);
-            const player = useRef(null);
-            const uiTimeout = useRef(null);
-
-            // Tự động ẩn UI sau 3 giây không tương tác
-            const activeUI = () => {
-                setShowUI(true);
-                clearTimeout(uiTimeout.current);
-                uiTimeout.current = setTimeout(() => {
-                    if (isPlaying) setShowUI(false);
-                }, 3000);
-            };
-
-            const togglePlay = () => {
-                if (!player.current) return;
-                if (player.current.video.paused) {
-                    player.current.play();
-                    setIsPlaying(true);
-                } else {
-                    player.current.pause();
-                    setIsPlaying(false);
-                }
-            };
-
-            const skip = (amount) => {
-                if (!player.current) return;
-                player.current.seek(player.current.video.currentTime + amount);
-                activeUI();
-            };
-
-            const handleSearch = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                try {
-                    const resp = await fetch(`${API_BASE}/tim-kiem?keyword=${searchQuery}`);
-                    const data = await resp.json();
-                    setResults(data.data.items);
-                    setCurrentMovie(null);
-                    setPlayingEp(null);
-                } catch (err) { console.error(err); }
-                finally { setLoading(false); }
-            };
-
-            const loadMovie = async (slug) => {
-                setLoading(true);
-                try {
-                    const resp = await fetch(`${API_BASE}/phim/${slug}`);
-                    const data = await resp.json();
-                    setCurrentMovie(data.data.item);
-                    setResults([]);
-                } catch (err) { console.error(err); }
-                finally { setLoading(false); }
-            };
-
-            const playEpisode = (ep) => {
-                setPlayingEp(ep);
-                setVideoMode(ep.link_m3u8 ? 'hls' : 'embed');
-                
-                if (ep.link_m3u8) {
-                    setTimeout(() => {
-                        if (player.current) player.current.destroy();
-                        player.current = new DPlayer({
-                            container: dpRef.current,
-                            video: { url: ep.link_m3u8, type: 'hls' },
-                            autoplay: true,
-                        });
-
-                        player.current.on('timeupdate', () => {
-                            const p = (player.current.video.currentTime / player.current.video.duration) * 100;
-                            setProgress(p);
-                        });
-
-                        player.current.on('play', () => setIsPlaying(true));
-                        player.current.on('pause', () => setIsPlaying(false));
-                    }, 100);
-                }
-            };
-
-            return (
-                <div className="min-h-screen" onMouseMove={activeUI} onClick={activeUI}>
-                    {/* Header */}
-                    <nav className="fixed top-0 w-full z-50 p-6 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
-                        <h1 className="text-3xl font-black text-[#e50914] tracking-tighter cursor-pointer" onClick={() => location.reload()}>PHIMHIU</h1>
-                        
-                        <form onSubmit={handleSearch} className="relative w-full max-w-md mx-4">
-                            <input 
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Phim, diễn viên, đạo diễn..."
-                                className="w-full bg-black/50 border border-white/20 py-2 px-10 rounded-sm focus:outline-none focus:border-white transition-all"
-                            />
-                            <Icon name="search" className="absolute left-3 top-2.5 opacity-50" size={18} />
-                        </form>
-                        <div className="w-10 h-10 bg-blue-500 rounded-sm"></div>
-                    </nav>
-
-                    <main className="pt-24 px-4 md:px-12">
-                        <AnimatePresence>
-                            {/* Netflix Player UI */}
-                            {playingEp && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative aspect-video w-full max-w-6xl mx-auto rounded-lg overflow-hidden group">
-                                    {/* DPlayer Container */}
-                                    <div ref={dpRef} className={`w-full h-full ${videoMode === 'embed' ? 'hidden' : ''}`} />
-                                    
-                                    {videoMode === 'embed' && (
-                                        <iframe src={playingEp.link_embed} className="w-full h-full" allowFullScreen />
-                                    )}
-
-                                    {/* Netflix Custom Overlay */}
-                                    {videoMode === 'hls' && (
-                                        <div className={`absolute inset-0 z-10 transition-opacity duration-500 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                                            {/* Center Controls */}
-                                            <div className="absolute inset-0 flex items-center justify-center gap-16">
-                                                <button onClick={() => skip(-10)} className="hover:scale-110 transition-transform"><Icon name="rotate-ccw" size={48} /></button>
-                                                <button onClick={togglePlay} className="bg-white text-black p-6 rounded-full hover:scale-105 transition-transform">
-                                                    <Icon name={isPlaying ? "pause" : "play"} size={40} />
-                                                </button>
-                                                <button onClick={() => skip(10)} className="hover:scale-110 transition-transform"><Icon name="rotate-cw" size={48} /></button>
-                                            </div>
-
-                                            {/* Bottom Controls */}
-                                            <div className="absolute bottom-0 w-full p-8 glass-panel space-y-4">
-                                                {/* Progress Bar */}
-                                                <input 
-                                                    type="range" className="w-full h-1" 
-                                                    value={progress} 
-                                                    onChange={(e) => {
-                                                        const time = (e.target.value / 100) * player.current.video.duration;
-                                                        player.current.seek(time);
-                                                    }}
-                                                />
-                                                
-                                                <div className="flex justify-between items-center">
-                                                    <div className="flex items-center gap-8">
-                                                        <button onClick={togglePlay}><Icon name={isPlaying ? "pause" : "play"} /></button>
-                                                        <div className="flex items-center gap-4 group/vol">
-                                                            <Icon name="volume-2" />
-                                                            <input 
-                                                                type="range" className="w-20" 
-                                                                onChange={(e) => {
-                                                                    player.current.video.volume = e.target.value / 100;
-                                                                    setVolume(e.target.value);
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-sm font-bold">{currentMovie?.name} - {playingEp.name}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-6">
-                                                        <button onClick={() => player.current.fullScreen.request()}><Icon name="maximize" /></button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            )}
-
-                            {/* Movie Grid */}
-                            {!currentMovie && results.length > 0 && (
-                                <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-6 gap-4 py-10">
-                                    {results.map((item) => (
-                                        <div key={item.slug} onClick={() => loadMovie(item.slug)} className="relative group cursor-pointer transition-transform hover:scale-105 z-10">
-                                            <img src={item.thumb_url.startsWith('http') ? item.thumb_url : IMG_CDN + item.thumb_url} className="rounded-md w-full aspect-[2/3] object-cover" />
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                <Icon name="play-circle" size={48} className="text-[#e50914]" />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Detail & Episode List */}
-                            {currentMovie && !playingEp && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col md:flex-row gap-10 py-10">
-                                    <img src={currentMovie.thumb_url} className="w-full md:w-80 rounded-lg shadow-2xl" />
-                                    <div className="flex-1">
-                                        <h2 className="text-5xl font-black mb-4">{currentMovie.name}</h2>
-                                        <p className="text-[#e50914] font-bold mb-6">{currentMovie.year} | {currentMovie.quality} | {currentMovie.episode_current}</p>
-                                        <div className="text-lg text-gray-300 leading-relaxed mb-10" dangerouslySetInnerHTML={{ __html: currentMovie.content }} />
-                                        
-                                        <h3 className="text-xl font-bold mb-4">Danh sách tập</h3>
-                                        <div className="flex flex-wrap gap-3">
-                                            {currentMovie.episodes[0].server_data.map((ep, idx) => (
-                                                <button 
-                                                    key={idx} 
-                                                    onClick={() => playEpisode(ep)}
-                                                    className="px-8 py-3 bg-white/10 hover:bg-[#e50914] rounded-md font-bold transition-colors"
-                                                >
-                                                    Tập {ep.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </main>
-
-                    {loading && (
-                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center">
-                            <div className="netflix-loader"></div>
-                        </div>
-                    )}
+            <div class="bottom-controls">
+                <div class="time-display"><span id="currTime">00:00</span> / <span id="totalTime">00:00</span></div>
+                <div class="progress-container" id="p-container" onclick="seekVideo(event)">
+                    <div class="progress-bar" id="p-bar"></div>
                 </div>
-            );
-        }
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: bold; font-size: 18px;" id="playing-name">Đang tải...</div>
+                    <button class="n-btn" onclick="toggleTheater()" style="font-size: 18px;"><i class="fas fa-expand"></i></button>
+                </div>
+            </div>
+        </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+        <div id="dplayer"></div>
+        <iframe id="iframe-player" src="" allowfullscreen style="display:none; width:100%; height:100%; border:none;"></iframe>
+    </div>
+
+    <div id="results-grid" class="movie-grid"></div>
+
+    <div id="detail-screen" style="display: none; margin-top: 30px;">
+        <h2 id="movie-title"></h2>
+        <div class="episode-list" id="episodes"></div>
+    </div>
+</div>
+
+<script>
+    let dp = null;
+    let hideTimeout;
+    const API_URL = "https://phimapi.com";
+
+    // 1. Tự động ẩn UI sau 3 giây
+    function resetHideTimer() {
+        const overlay = document.getElementById('netflix-overlay');
+        overlay.classList.add('active');
+        clearTimeout(hideTimeout);
+        
+        // Chỉ tự ẩn nếu phim đang phát
+        if (dp && !dp.video.paused) {
+            hideTimeout = setTimeout(() => {
+                overlay.classList.remove('active');
+            }, 3000);
+        }
+    }
+
+    document.getElementById('video-container').addEventListener('mousemove', resetHideTimer);
+
+    // 2. Đồng bộ Progress Bar & Thời gian
+    function updateProgress() {
+        if (!dp) return;
+        const cur = dp.video.currentTime;
+        const dur = dp.video.duration;
+        if (dur > 0) {
+            const percent = (cur / dur) * 100;
+            document.getElementById('p-bar').style.width = percent + '%';
+            document.getElementById('currTime').innerText = formatTime(cur);
+            document.getElementById('totalTime').innerText = formatTime(dur);
+        }
+        requestAnimationFrame(updateProgress);
+    }
+
+    function formatTime(sec) {
+        let m = Math.floor(sec / 60);
+        let s = Math.floor(sec % 60);
+        return (m < 10 ? '0'+m : m) + ':' + (s < 10 ? '0'+s : s);
+    }
+
+    function seekVideo(e) {
+        if (!dp) return;
+        const rect = document.getElementById('p-container').getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        dp.seek(pos * dp.video.duration);
+    }
+
+    // 3. Các hàm điều khiển
+    function togglePlayPause() {
+        if (!dp) return;
+        const icon = document.getElementById('main-play-icon');
+        if (dp.video.paused) {
+            dp.play();
+            icon.className = "fas fa-pause";
+        } else {
+            dp.pause();
+            icon.className = "fas fa-play";
+        }
+        resetHideTimer();
+    }
+
+    function forward(s) { if(dp) dp.seek(dp.video.currentTime + s); resetHideTimer(); }
+    function rewind(s) { if(dp) dp.seek(dp.video.currentTime - s); resetHideTimer(); }
+
+    // 4. Xử lý Iframe vs DPlayer
+    async function startPlay(m3u8, embed, slug, epName) {
+        const container = document.getElementById('video-container');
+        const overlay = document.getElementById('netflix-overlay');
+        container.style.display = 'block';
+
+        if (m3u8) {
+            overlay.style.display = 'flex'; // Hiện UI Netflix cho m3u8
+            document.getElementById('iframe-player').style.display = 'none';
+            document.getElementById('dplayer').style.display = 'block';
+            
+            if(dp) dp.destroy();
+            dp = new DPlayer({
+                container: document.getElementById('dplayer'),
+                autoplay: true,
+                video: { url: m3u8, type: 'hls' }
+            });
+
+            // Lắng nghe sự kiện từ API DPlayer để cập nhật Icon
+            dp.on('play', () => document.getElementById('main-play-icon').className = "fas fa-pause");
+            dp.on('pause', () => document.getElementById('main-play-icon').className = "fas fa-play");
+            
+            updateProgress();
+        } else {
+            // Tối ưu Iframe: Ẩn UI Netflix để tránh đè nút
+            overlay.style.display = 'none';
+            document.getElementById('dplayer').style.display = 'none';
+            document.getElementById('iframe-player').style.display = 'block';
+            document.getElementById('iframe-player').src = embed;
+        }
+        
+        document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('ep-' + epName).classList.add('active');
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    // --- Giữ nguyên các hàm Search và Render cũ ---
+    async function handleSearch(e) {
+        if (e.key === 'Enter') {
+            const res = await fetch(`${API_URL}/v1/api/tim-kiem?keyword=${e.target.value}`);
+            const data = await res.json();
+            renderMovies(data.data.items);
+        }
+    }
+
+    function renderMovies(items) {
+        const grid = document.getElementById('results-grid');
+        grid.innerHTML = items.map(item => `
+            <div class="movie-card" onclick="loadDetail('${item.slug}')">
+                <img src="https://phimimg.com/${item.thumb_url}">
+                <div style="padding:10px; font-size:14px;">${item.name}</div>
+            </div>
+        `).join('');
+    }
+
+    async function loadDetail(slug) {
+        const res = await fetch(`${API_URL}/v1/api/phim/${slug}`);
+        const data = await res.json();
+        const movie = data.data.item;
+        document.getElementById('results-grid').innerHTML = '';
+        document.getElementById('detail-screen').style.display = 'block';
+        document.getElementById('movie-title').innerText = movie.name;
+        document.getElementById('playing-name').innerText = movie.name;
+
+        const eps = movie.episodes[0].server_data;
+        document.getElementById('episodes').innerHTML = eps.map(ep => `
+            <div id="ep-${ep.name}" class="ep-btn" 
+                 onclick="startPlay('${ep.link_m3u8}', '${ep.link_embed}', '${slug}', '${ep.name}')">Tập ${ep.name}</div>
+        `).join('');
+    }
+
+    // Phím tắt
+    document.addEventListener('keydown', (e) => {
+        if(e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
+    });
+</script>
+
 </body>
 </html>
