@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU Pro - Xem Phim Thông Minh</title>
+    <title>PHIMHIU - Netflix Style</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -15,40 +15,26 @@
     <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.11/dist/framer-motion.js"></script>
 
     <style>
-        :root { --primary: #ff4757; }
-        body { margin: 0; transition: background 0.5s ease; overflow-x: hidden; font-family: 'Inter', sans-serif; }
-        [data-theme='dark'] { background: #050505; color: #ffffff; }
-        [data-theme='light'] { background: #fdfdfd; color: #1a1a1a; }
+        :root { --netflix-red: #e50914; }
+        body { background: #000; color: #fff; margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .glass-panel { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%); }
+        .dplayer-controller { display: none !important; } /* Ẩn control mặc định của DPlayer để dùng UI Netflix */
         
-        .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        [data-theme='light'] .glass {
-            background: rgba(0, 0, 0, 0.02);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+        input[type='range'] {
+            accent-color: var(--netflix-red);
+            cursor: pointer;
         }
 
-        .skip-ripple {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 25%;
-            height: 80%;
-            background: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            z-index: 50;
+        .netflix-loader {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #333;
+            border-top-color: var(--netflix-red);
             border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
-        /* Tùy chỉnh thanh cuộn */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -61,279 +47,218 @@
         const API_BASE = "https://phimapi.com/v1/api";
         const IMG_CDN = "https://img.phimapi.com/";
 
-        // Component hiển thị Icon từ Lucide
-        const Icon = ({ name, className = "" }) => {
+        const Icon = ({ name, size = 24, className = "" }) => {
             useEffect(() => { lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} className={className}></i>;
+            return <i data-lucide={name} className={className} style={{width: size, height: size}}></i>;
         };
 
         function App() {
-            const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+            const [theme, setTheme] = useState('dark');
             const [searchQuery, setSearchQuery] = useState('');
             const [results, setResults] = useState([]);
             const [currentMovie, setCurrentMovie] = useState(null);
-            const [history, setHistory] = useState(JSON.parse(localStorage.getItem('watchHistory') || '[]'));
             const [playingEp, setPlayingEp] = useState(null);
-            const [currentEpIndex, setCurrentEpIndex] = useState(-1);
             const [loading, setLoading] = useState(false);
-            const [skipLabel, setSkipLabel] = useState({ show: false, side: '', text: '' });
+            
+            // Player States
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [progress, setProgress] = useState(0);
+            const [showUI, setShowUI] = useState(true);
+            const [volume, setVolume] = useState(100);
+            const [videoMode, setVideoMode] = useState(null);
             
             const dpRef = useRef(null);
-            const playerInstance = useRef(null);
-            const [videoMode, setVideoMode] = useState(null);
+            const player = useRef(null);
+            const uiTimeout = useRef(null);
 
-            useEffect(() => {
-                document.body.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-            }, [theme]);
+            // Tự động ẩn UI sau 3 giây không tương tác
+            const activeUI = () => {
+                setShowUI(true);
+                clearTimeout(uiTimeout.current);
+                uiTimeout.current = setTimeout(() => {
+                    if (isPlaying) setShowUI(false);
+                }, 3000);
+            };
 
-            // Tính năng Double Click để tua
-            const handleOverlayClick = (e) => {
-                if (videoMode !== 'hls' || !playerInstance.current) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const width = rect.width;
-
-                if (x < width / 3) {
-                    performSkip(-10, 'left');
-                } else if (x > (width * 2) / 3) {
-                    performSkip(10, 'right');
+            const togglePlay = () => {
+                if (!player.current) return;
+                if (player.current.video.paused) {
+                    player.current.play();
+                    setIsPlaying(true);
+                } else {
+                    player.current.pause();
+                    setIsPlaying(false);
                 }
             };
 
-            const performSkip = (seconds, side) => {
-                const player = playerInstance.current;
-                player.seek(player.video.currentTime + seconds);
-                setSkipLabel({ show: true, side, text: `${seconds > 0 ? '+' : ''}${seconds}s` });
-                setTimeout(() => setSkipLabel({ show: false, side: '', text: '' }), 600);
-            };
-
-            const fetchMovieDetail = async (slug) => {
-                setLoading(true);
-                try {
-                    const resp = await fetch(`${API_BASE}/phim/${slug}`);
-                    const data = await resp.json();
-                    if (data.status) {
-                        const movie = data.data.item;
-                        setCurrentMovie(movie);
-                        setResults([]);
-                        
-                        // Kiểm tra xem có tập phim nào đang xem dở không
-                        const savedData = JSON.parse(localStorage.getItem(`save_${slug}`));
-                        if (savedData && movie.episodes?.[0]?.server_data) {
-                            const episodes = movie.episodes[0].server_data;
-                            const idx = episodes.findIndex(e => e.name === savedData.epName);
-                            if (idx !== -1) playEpisode(episodes[idx], movie, idx);
-                        }
-                    }
-                } catch (err) { console.error(err); } finally { setLoading(false); }
+            const skip = (amount) => {
+                if (!player.current) return;
+                player.current.seek(player.current.video.currentTime + amount);
+                activeUI();
             };
 
             const handleSearch = async (e) => {
                 e.preventDefault();
-                if (!searchQuery.trim()) return;
                 setLoading(true);
                 try {
                     const resp = await fetch(`${API_BASE}/tim-kiem?keyword=${searchQuery}`);
                     const data = await resp.json();
-                    if (data.status) {
-                        setResults(data.data.items);
-                        setCurrentMovie(null);
-                        setPlayingEp(null);
-                    }
-                } catch (err) { console.error(err); } finally { setLoading(false); }
+                    setResults(data.data.items);
+                    setCurrentMovie(null);
+                    setPlayingEp(null);
+                } catch (err) { console.error(err); }
+                finally { setLoading(false); }
             };
 
-            const playEpisode = (ep, movie, index) => {
-                setPlayingEp(ep.name);
-                setCurrentEpIndex(index);
-                
-                // Lưu tập hiện tại vào bộ nhớ
-                localStorage.setItem(`save_${movie.slug}`, JSON.stringify({ epName: ep.name, time: Date.now() }));
-                
-                // Cập nhật danh sách "Tiếp tục xem"
-                const newHistory = [
-                    { name: movie.name, slug: movie.slug, thumb: movie.thumb_url, lastEp: ep.name },
-                    ...history.filter(h => h.slug !== movie.slug)
-                ].slice(0, 10);
-                setHistory(newHistory);
-                localStorage.setItem('watchHistory', JSON.stringify(newHistory));
+            const loadMovie = async (slug) => {
+                setLoading(true);
+                try {
+                    const resp = await fetch(`${API_BASE}/phim/${slug}`);
+                    const data = await resp.json();
+                    setCurrentMovie(data.data.item);
+                    setResults([]);
+                } catch (err) { console.error(err); }
+                finally { setLoading(false); }
+            };
 
+            const playEpisode = (ep) => {
+                setPlayingEp(ep);
+                setVideoMode(ep.link_m3u8 ? 'hls' : 'embed');
+                
                 if (ep.link_m3u8) {
-                    setVideoMode('hls');
                     setTimeout(() => {
-                        if (dpRef.current) {
-                            if (playerInstance.current) playerInstance.current.destroy();
-                            playerInstance.current = new DPlayer({
-                                container: dpRef.current,
-                                autoplay: true,
-                                video: { url: ep.link_m3u8, type: 'hls' },
-                                theme: '#ff4757',
-                            });
-                        }
+                        if (player.current) player.current.destroy();
+                        player.current = new DPlayer({
+                            container: dpRef.current,
+                            video: { url: ep.link_m3u8, type: 'hls' },
+                            autoplay: true,
+                        });
+
+                        player.current.on('timeupdate', () => {
+                            const p = (player.current.video.currentTime / player.current.video.duration) * 100;
+                            setProgress(p);
+                        });
+
+                        player.current.on('play', () => setIsPlaying(true));
+                        player.current.on('pause', () => setIsPlaying(false));
                     }, 100);
-                } else {
-                    setVideoMode('embed');
                 }
-                window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
             return (
-                <div className="min-h-screen p-4 md:p-8">
+                <div className="min-h-screen" onMouseMove={activeUI} onClick={activeUI}>
                     {/* Header */}
-                    <header className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-                        <h1 className="text-3xl font-black tracking-tighter text-[#ff4757] cursor-pointer" onClick={() => { setResults([]); setCurrentMovie(null); setPlayingEp(null); setSearchQuery(''); }}>PHIMHIU.</h1>
+                    <nav className="fixed top-0 w-full z-50 p-6 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
+                        <h1 className="text-3xl font-black text-[#e50914] tracking-tighter cursor-pointer" onClick={() => location.reload()}>PHIMHIU</h1>
                         
-                        <form onSubmit={handleSearch} className="relative w-full max-lg group">
+                        <form onSubmit={handleSearch} className="relative w-full max-w-md mx-4">
                             <input 
-                                type="text" 
-                                placeholder="Tìm phim, diễn viên, đạo diễn..."
-                                className="w-full pl-12 pr-6 py-3 rounded-2xl glass outline-none focus:ring-2 ring-[#ff4757] transition-all"
+                                type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Phim, diễn viên, đạo diễn..."
+                                className="w-full bg-black/50 border border-white/20 py-2 px-10 rounded-sm focus:outline-none focus:border-white transition-all"
                             />
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50"><Icon name="search" /></div>
+                            <Icon name="search" className="absolute left-3 top-2.5 opacity-50" size={18} />
                         </form>
+                        <div className="w-10 h-10 bg-blue-500 rounded-sm"></div>
+                    </nav>
 
-                        <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="p-3 glass rounded-full">
-                            <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
-                        </button>
-                    </header>
-
-                    <main className="max-w-6xl mx-auto">
-                        <AnimatePresence mode="wait">
-                            {/* Trình phát Video */}
-                            {currentMovie && playingEp && (
-                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-                                    <div className="relative group rounded-3xl overflow-hidden bg-black shadow-2xl aspect-video border border-white/10">
-                                        <div ref={dpRef} className={videoMode !== 'hls' ? 'hidden' : 'w-full h-full'} />
-                                        {videoMode === 'embed' && (
-                                            <iframe 
-                                                src={currentMovie.episodes[0].server_data[currentEpIndex].link_embed} 
-                                                className="w-full h-full border-none" 
-                                                allowFullScreen 
-                                            />
-                                        )}
-                                        
-                                        {/* Lớp phủ bắt sự kiện Double Click */}
-                                        <div className="absolute inset-0 z-40 flex cursor-pointer" onDoubleClick={handleOverlayClick}>
-                                            <div className="w-1/3 h-full"></div>
-                                            <div className="w-1/3 h-full cursor-default"></div>
-                                            <div className="w-1/3 h-full"></div>
-                                        </div>
-
-                                        {/* Hiệu ứng Tua nhanh */}
-                                        <AnimatePresence>
-                                            {skipLabel.show && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, scale: 0.5 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    className={`skip-ripple ${skipLabel.side === 'left' ? "left-4 rounded-r-full" : "right-4 rounded-l-full"}`}
-                                                >
-                                                    <div className="text-center text-white">
-                                                        <Icon name={skipLabel.side === 'left' ? "rewind" : "fast-forward"} className="mx-auto mb-2 w-8 h-8" />
-                                                        <span className="font-bold text-xl">{skipLabel.text}</span>
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
+                    <main className="pt-24 px-4 md:px-12">
+                        <AnimatePresence>
+                            {/* Netflix Player UI */}
+                            {playingEp && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative aspect-video w-full max-w-6xl mx-auto rounded-lg overflow-hidden group">
+                                    {/* DPlayer Container */}
+                                    <div ref={dpRef} className={`w-full h-full ${videoMode === 'embed' ? 'hidden' : ''}`} />
                                     
-                                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 glass p-6 rounded-2xl">
-                                        <div className="space-y-1">
-                                            <h2 className="font-bold text-xl">{currentMovie.name}</h2>
-                                            <p className="text-sm font-bold text-[#ff4757]">Đang phát: Tập {playingEp}</p>
+                                    {videoMode === 'embed' && (
+                                        <iframe src={playingEp.link_embed} className="w-full h-full" allowFullScreen />
+                                    )}
+
+                                    {/* Netflix Custom Overlay */}
+                                    {videoMode === 'hls' && (
+                                        <div className={`absolute inset-0 z-10 transition-opacity duration-500 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                            {/* Center Controls */}
+                                            <div className="absolute inset-0 flex items-center justify-center gap-16">
+                                                <button onClick={() => skip(-10)} className="hover:scale-110 transition-transform"><Icon name="rotate-ccw" size={48} /></button>
+                                                <button onClick={togglePlay} className="bg-white text-black p-6 rounded-full hover:scale-105 transition-transform">
+                                                    <Icon name={isPlaying ? "pause" : "play"} size={40} />
+                                                </button>
+                                                <button onClick={() => skip(10)} className="hover:scale-110 transition-transform"><Icon name="rotate-cw" size={48} /></button>
+                                            </div>
+
+                                            {/* Bottom Controls */}
+                                            <div className="absolute bottom-0 w-full p-8 glass-panel space-y-4">
+                                                {/* Progress Bar */}
+                                                <input 
+                                                    type="range" className="w-full h-1" 
+                                                    value={progress} 
+                                                    onChange={(e) => {
+                                                        const time = (e.target.value / 100) * player.current.video.duration;
+                                                        player.current.seek(time);
+                                                    }}
+                                                />
+                                                
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-8">
+                                                        <button onClick={togglePlay}><Icon name={isPlaying ? "pause" : "play"} /></button>
+                                                        <div className="flex items-center gap-4 group/vol">
+                                                            <Icon name="volume-2" />
+                                                            <input 
+                                                                type="range" className="w-20" 
+                                                                onChange={(e) => {
+                                                                    player.current.video.volume = e.target.value / 100;
+                                                                    setVolume(e.target.value);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-sm font-bold">{currentMovie?.name} - {playingEp.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-6">
+                                                        <button onClick={() => player.current.fullScreen.request()}><Icon name="maximize" /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex gap-3">
-                                            <button 
-                                                onClick={() => playEpisode(currentMovie.episodes[0].server_data[currentEpIndex-1], currentMovie, currentEpIndex-1)} 
-                                                disabled={currentEpIndex <= 0} 
-                                                className="p-3 glass rounded-xl disabled:opacity-20 hover:bg-[#ff4757] hover:text-white transition-colors"
-                                            ><Icon name="skip-back" /></button>
-                                            <button 
-                                                onClick={() => playEpisode(currentMovie.episodes[0].server_data[currentEpIndex+1], currentMovie, currentEpIndex+1)} 
-                                                disabled={!currentMovie.episodes[0].server_data[currentEpIndex+1]} 
-                                                className="p-3 glass rounded-xl disabled:opacity-20 hover:bg-[#ff4757] hover:text-white transition-colors"
-                                            ><Icon name="skip-forward" /></button>
-                                        </div>
-                                    </div>
+                                    )}
                                 </motion.div>
                             )}
 
-                            {/* Lưới phim kết quả tìm kiếm */}
+                            {/* Movie Grid */}
                             {!currentMovie && results.length > 0 && (
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-6 gap-4 py-10">
                                     {results.map((item) => (
-                                        <div key={item.slug} onClick={() => fetchMovieDetail(item.slug)} className="group cursor-pointer">
-                                            <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-3 border border-white/5">
-                                                <img src={item.thumb_url.startsWith('http') ? item.thumb_url : IMG_CDN + item.thumb_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <div className="bg-[#ff4757] p-4 rounded-full shadow-lg"><Icon name="play" className="text-white fill-current" /></div>
-                                                </div>
+                                        <div key={item.slug} onClick={() => loadMovie(item.slug)} className="relative group cursor-pointer transition-transform hover:scale-105 z-10">
+                                            <img src={item.thumb_url.startsWith('http') ? item.thumb_url : IMG_CDN + item.thumb_url} className="rounded-md w-full aspect-[2/3] object-cover" />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                <Icon name="play-circle" size={48} className="text-[#e50914]" />
                                             </div>
-                                            <h3 className="font-bold truncate text-sm">{item.name}</h3>
-                                            <p className="text-xs opacity-50">{item.year}</p>
                                         </div>
                                     ))}
                                 </div>
                             )}
 
-                            {/* Trang chủ: Lịch sử và Chào mừng */}
-                            {!currentMovie && results.length === 0 && (
-                                <div className="space-y-12">
-                                    {history.length > 0 && (
-                                        <section>
-                                            <h2 className="text-sm font-black tracking-widest text-[#ff4757] uppercase mb-6 flex items-center gap-2">
-                                                <Icon name="history" className="w-4 h-4" /> Tiếp tục xem lần trước
-                                            </h2>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                                {history.map((item) => (
-                                                    <div key={item.slug} onClick={() => fetchMovieDetail(item.slug)} className="glass p-3 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-[#ff4757]/10 transition-colors">
-                                                        <img src={item.thumb.startsWith('http') ? item.thumb : IMG_CDN + item.thumb} className="w-12 h-16 rounded-lg object-cover shadow-lg" />
-                                                        <div className="overflow-hidden">
-                                                            <p className="font-bold text-sm truncate">{item.name}</p>
-                                                            <p className="text-xs text-[#ff4757] font-bold">Tập {item.lastEp}</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </section>
-                                    )}
-                                    <div className="py-24 text-center glass rounded-[40px] border-dashed">
-                                        <Icon name="clapperboard" className="w-16 h-16 mx-auto mb-4 text-[#ff4757] opacity-20" />
-                                        <h2 className="text-2xl font-bold opacity-40">Tìm kiếm phim để bắt đầu</h2>
-                                        <p className="opacity-30 mt-2">Nhập tên phim, diễn viên hoặc đạo diễn vào ô tìm kiếm</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Chi tiết phim và chọn tập */}
+                            {/* Detail & Episode List */}
                             {currentMovie && !playingEp && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass p-8 rounded-[40px]">
-                                    <div className="flex flex-col md:flex-row gap-10">
-                                        <img src={currentMovie.thumb_url} className="w-full md:w-72 rounded-3xl shadow-2xl object-cover" />
-                                        <div className="flex-1">
-                                            <h2 className="text-4xl font-black mb-4 tracking-tighter">{currentMovie.name}</h2>
-                                            <div className="flex flex-wrap gap-4 mb-6 opacity-60 font-bold text-sm">
-                                                <span className="bg-white/10 px-3 py-1 rounded-lg">{currentMovie.year}</span>
-                                                <span className="bg-white/10 px-3 py-1 rounded-lg">{currentMovie.time}</span>
-                                                <span className="text-[#ff4757] font-bold">{currentMovie.quality}</span>
-                                            </div>
-                                            <div className="text-lg opacity-70 leading-relaxed mb-10 max-h-48 overflow-y-auto pr-4" dangerouslySetInnerHTML={{ __html: currentMovie.content }} />
-                                            
-                                            <h3 className="font-black mb-4 uppercase tracking-widest text-[10px] text-[#ff4757]">Danh sách tập</h3>
-                                            <div className="flex flex-wrap gap-2">
-                                                {currentMovie.episodes[0].server_data.map((ep, idx) => (
-                                                    <button 
-                                                        key={idx} 
-                                                        onClick={() => playEpisode(ep, currentMovie, idx)}
-                                                        className="px-6 py-2.5 glass rounded-xl hover:bg-[#ff4757] hover:text-white hover:scale-105 transition-all font-bold text-sm"
-                                                    >
-                                                        {ep.name}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col md:flex-row gap-10 py-10">
+                                    <img src={currentMovie.thumb_url} className="w-full md:w-80 rounded-lg shadow-2xl" />
+                                    <div className="flex-1">
+                                        <h2 className="text-5xl font-black mb-4">{currentMovie.name}</h2>
+                                        <p className="text-[#e50914] font-bold mb-6">{currentMovie.year} | {currentMovie.quality} | {currentMovie.episode_current}</p>
+                                        <div className="text-lg text-gray-300 leading-relaxed mb-10" dangerouslySetInnerHTML={{ __html: currentMovie.content }} />
+                                        
+                                        <h3 className="text-xl font-bold mb-4">Danh sách tập</h3>
+                                        <div className="flex flex-wrap gap-3">
+                                            {currentMovie.episodes[0].server_data.map((ep, idx) => (
+                                                <button 
+                                                    key={idx} 
+                                                    onClick={() => playEpisode(ep)}
+                                                    className="px-8 py-3 bg-white/10 hover:bg-[#e50914] rounded-md font-bold transition-colors"
+                                                >
+                                                    Tập {ep.name}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -341,10 +266,9 @@
                         </AnimatePresence>
                     </main>
 
-                    {/* Hiệu ứng Loading */}
                     {loading && (
-                        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                            <div className="w-12 h-12 border-[6px] border-[#ff4757] border-t-transparent rounded-full animate-spin"></div>
+                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center">
+                            <div className="netflix-loader"></div>
                         </div>
                     )}
                 </div>
