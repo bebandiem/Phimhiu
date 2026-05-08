@@ -2,285 +2,110 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU - Netflix Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PHIMHIU FAST</title>
     
+    <!-- Tải CSS trước để hiện giao diện nhanh -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
     
     <style>
-        :root {
-            --netflix-red: #e50914;
-            --bg: #050505; --text: #ffffff;
-            --glass: rgba(0, 0, 0, 0.7);
-        }
+        :root { --n-red: #e50914; --bg: #050505; --card-bg: #141414; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; margin: 0; }
+        .container { padding: 10px; max-width: 800px; margin: auto; }
+        
+        /* Skeleton loading effect - tạo cảm giác trang load nhanh hơn */
+        .movie-card { background: #222; border-radius: 4px; min-height: 150px; position: relative; overflow: hidden; }
+        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; opacity: 0; transition: opacity 0.3s; }
+        .movie-card img.loaded { opacity: 1; }
 
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
-        .container { max-width: 1200px; margin: auto; padding: 20px; }
-
-        /* HIDE DPLAYER DEFAULT UI */
-        .dplayer-controller, .dplayer-controller-mask { display: none !important; }
-
-        /* NETFLIX OVERLAY SYSTEM */
-        #video-container { 
-            width: 100%; margin-bottom: 40px; border-radius: 12px; 
-            overflow: hidden; background: #000; display: none; 
-            aspect-ratio: 16/9; position: relative;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-        }
-
-        #netflix-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            z-index: 100; display: flex; flex-direction: column; justify-content: space-between;
-            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.6) 100%);
-            transition: opacity 0.4s ease;
-            opacity: 0; /* Mặc định ẩn */
-        }
-        #video-container:hover #netflix-overlay, 
-        #netflix-overlay.active { opacity: 1; }
-
-        /* Center Controls */
-        .center-controls {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            display: flex; align-items: center; gap: 50px;
-        }
-        .n-btn {
-            background: none; border: none; color: white; cursor: pointer;
-            font-size: 30px; transition: 0.2s; opacity: 0.9;
-        }
-        .n-btn:hover { transform: scale(1.2); opacity: 1; color: var(--netflix-red); }
-        .n-btn-main {
-            width: 90px; height: 90px; border-radius: 50%;
-            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
-            font-size: 45px; display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Netflix Progress Bar */
-        .bottom-controls { padding: 0 30px 20px 30px; }
-        .progress-container {
-            width: 100%; height: 4px; background: rgba(255,255,255,0.3);
-            cursor: pointer; position: relative; margin-bottom: 15px;
-            transition: height 0.1s;
-        }
-        .progress-container:hover { height: 8px; }
-        .progress-bar { height: 100%; background: var(--netflix-red); width: 0%; position: relative; }
-        .progress-bar::after {
-            content: ''; position: absolute; right: -5px; top: 50%; transform: translateY(-50%);
-            width: 12px; height: 12px; background: var(--netflix-red); border-radius: 50%; opacity: 0;
-        }
-        .progress-container:hover .progress-bar::after { opacity: 1; }
-
-        .time-display { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
-
-        /* Theme & Grid */
-        .header-nav { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 40px; }
-        h1 { letter-spacing: 5px; color: var(--netflix-red); cursor: pointer; margin: 0; }
-        .search-wrapper input { 
-            width: 100%; padding: 15px 25px; border-radius: 4px; 
-            border: none; background: #333; color: white; font-size: 16px; box-sizing: border-box;
-        }
-        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-        .movie-card { border-radius: 4px; overflow: hidden; cursor: pointer; transition: 0.3s; }
-        .movie-card:hover { transform: scale(1.05); z-index: 2; }
-        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-
-        .ep-btn { 
-            background: #333; padding: 10px 20px; border-radius: 4px; cursor: pointer; 
-            margin: 5px; display: inline-block; transition: 0.2s;
-        }
-        .ep-btn.active { background: var(--netflix-red); }
+        .movie-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        #video-container { width: 100%; aspect-ratio: 16/9; background: #000; display: none; margin-bottom: 15px; }
+        
+        .search-box input { width: 100%; padding: 12px; border-radius: 4px; border: none; background: #222; color: #fff; box-sizing: border-box; }
+        
+        /* Netflix Overlay tối giản cho Mobile */
+        #n-overlay { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.5); opacity: 0; transition: 0.2s; }
+        #n-overlay.active { opacity: 1; }
+        .play-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 24px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-nav">
-        <h1 onclick="location.reload()">PHIMHIU</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+        <h1 style="color:var(--n-red); margin:0; font-size:24px;" onclick="location.reload()">PHIMHIU</h1>
     </div>
 
-    <div class="search-wrapper" style="max-width: 500px; margin: 0 auto 40px;">
-        <input type="text" id="searchInput" placeholder="Tìm kiếm phim..." onkeypress="handleSearch(event)">
+    <div class="search-box" style="margin-bottom: 15px;">
+        <input type="text" id="searchInput" placeholder="Tìm phim nhanh..." onkeypress="if(event.key==='Enter') search(this.value)">
     </div>
 
-    <!-- VIDEO PLAYER AREA -->
     <div id="video-container">
-        <!-- NETFLIX OVERLAY UI -->
-        <div id="netflix-overlay">
-            <div class="center-controls">
-                <button class="n-btn" onclick="rewind(10)"><i class="fas fa-backward"></i></button>
-                <button class="n-btn n-btn-main" onclick="togglePlayPause()">
-                    <i class="fas fa-play" id="main-play-icon"></i>
-                </button>
-                <button class="n-btn" onclick="forward(10)"><i class="fas fa-forward"></i></button>
-            </div>
-
-            <div class="bottom-controls">
-                <div class="time-display"><span id="currTime">00:00</span> / <span id="totalTime">00:00</span></div>
-                <div class="progress-container" id="p-container" onclick="seekVideo(event)">
-                    <div class="progress-bar" id="p-bar"></div>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-weight: bold; font-size: 18px;" id="playing-name">Đang tải...</div>
-                    <button class="n-btn" onclick="toggleTheater()" style="font-size: 18px;"><i class="fas fa-expand"></i></button>
-                </div>
-            </div>
-        </div>
-
         <div id="dplayer"></div>
-        <iframe id="iframe-player" src="" allowfullscreen style="display:none; width:100%; height:100%; border:none;"></iframe>
     </div>
 
-    <div id="results-grid" class="movie-grid"></div>
-
-    <div id="detail-screen" style="display: none; margin-top: 30px;">
-        <h2 id="movie-title"></h2>
-        <div class="episode-list" id="episodes"></div>
+    <div id="movie-grid" class="movie-grid">
+        <!-- Phim sẽ hiện ở đây -->
     </div>
 </div>
 
+<!-- Tải JS sau cùng để không chặn việc hiện giao diện -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
+
 <script>
+    const API = "https://ophim1.com";
     let dp = null;
-    let hideTimeout;
-    const API_URL = "https://phimapi.com";
 
-    // 1. Tự động ẩn UI sau 3 giây
-    function resetHideTimer() {
-        const overlay = document.getElementById('netflix-overlay');
-        overlay.classList.add('active');
-        clearTimeout(hideTimeout);
-        
-        // Chỉ tự ẩn nếu phim đang phát
-        if (dp && !dp.video.paused) {
-            hideTimeout = setTimeout(() => {
-                overlay.classList.remove('active');
-            }, 3000);
-        }
+    // FixImg tối ưu tốc độ: Không check link, chỉ ghép string
+    function fixImg(url) {
+        if (!url) return '';
+        return url.startsWith('http') ? url : `https://img.otruyenapi.com/uploads/movies/${url}`;
     }
 
-    document.getElementById('video-container').addEventListener('mousemove', resetHideTimer);
-
-    // 2. Đồng bộ Progress Bar & Thời gian
-    function updateProgress() {
-        if (!dp) return;
-        const cur = dp.video.currentTime;
-        const dur = dp.video.duration;
-        if (dur > 0) {
-            const percent = (cur / dur) * 100;
-            document.getElementById('p-bar').style.width = percent + '%';
-            document.getElementById('currTime').innerText = formatTime(cur);
-            document.getElementById('totalTime').innerText = formatTime(dur);
-        }
-        requestAnimationFrame(updateProgress);
-    }
-
-    function formatTime(sec) {
-        let m = Math.floor(sec / 60);
-        let s = Math.floor(sec % 60);
-        return (m < 10 ? '0'+m : m) + ':' + (s < 10 ? '0'+s : s);
-    }
-
-    function seekVideo(e) {
-        if (!dp) return;
-        const rect = document.getElementById('p-container').getBoundingClientRect();
-        const pos = (e.clientX - rect.left) / rect.width;
-        dp.seek(pos * dp.video.duration);
-    }
-
-    // 3. Các hàm điều khiển
-    function togglePlayPause() {
-        if (!dp) return;
-        const icon = document.getElementById('main-play-icon');
-        if (dp.video.paused) {
-            dp.play();
-            icon.className = "fas fa-pause";
-        } else {
-            dp.pause();
-            icon.className = "fas fa-play";
-        }
-        resetHideTimer();
-    }
-
-    function forward(s) { if(dp) dp.seek(dp.video.currentTime + s); resetHideTimer(); }
-    function rewind(s) { if(dp) dp.seek(dp.video.currentTime - s); resetHideTimer(); }
-
-    // 4. Xử lý Iframe vs DPlayer
-    async function startPlay(m3u8, embed, slug, epName) {
-        const container = document.getElementById('video-container');
-        const overlay = document.getElementById('netflix-overlay');
-        container.style.display = 'block';
-
-        if (m3u8) {
-            overlay.style.display = 'flex'; // Hiện UI Netflix cho m3u8
-            document.getElementById('iframe-player').style.display = 'none';
-            document.getElementById('dplayer').style.display = 'block';
-            
-            if(dp) dp.destroy();
-            dp = new DPlayer({
-                container: document.getElementById('dplayer'),
-                autoplay: true,
-                video: { url: m3u8, type: 'hls' }
-            });
-
-            // Lắng nghe sự kiện từ API DPlayer để cập nhật Icon
-            dp.on('play', () => document.getElementById('main-play-icon').className = "fas fa-pause");
-            dp.on('pause', () => document.getElementById('main-play-icon').className = "fas fa-play");
-            
-            updateProgress();
-        } else {
-            // Tối ưu Iframe: Ẩn UI Netflix để tránh đè nút
-            overlay.style.display = 'none';
-            document.getElementById('dplayer').style.display = 'none';
-            document.getElementById('iframe-player').style.display = 'block';
-            document.getElementById('iframe-player').src = embed;
-        }
-        
-        document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('ep-' + epName).classList.add('active');
-        window.scrollTo({top: 0, behavior: 'smooth'});
-    }
-
-    // --- Giữ nguyên các hàm Search và Render cũ ---
-    async function handleSearch(e) {
-        if (e.key === 'Enter') {
-            const res = await fetch(`${API_URL}/v1/api/tim-kiem?keyword=${e.target.value}`);
+    // Tải danh sách phim mới ngay lập tức
+    async function loadHome() {
+        try {
+            const res = await fetch(`${API}/danh-sach/phim-moi-cap-nhat?page=1`);
             const data = await res.json();
-            renderMovies(data.data.items);
-        }
+            render(data.items);
+        } catch (e) { console.error("Lỗi tải trang"); }
     }
 
-    function renderMovies(items) {
-        const grid = document.getElementById('results-grid');
-        grid.innerHTML = items.map(item => `
-            <div class="movie-card" onclick="loadDetail('${item.slug}')">
-                <img src="https://phimimg.com/${item.thumb_url}">
-                <div style="padding:10px; font-size:14px;">${item.name}</div>
+    function render(items) {
+        const grid = document.getElementById('movie-grid');
+        grid.innerHTML = items.map(i => `
+            <div class="movie-card" onclick="loadDetail('${i.slug}')">
+                <img src="${fixImg(i.thumb_url)}" loading="lazy" onload="this.classList.add('loaded')">
+                <div style="font-size:10px; padding:4px; white-space:nowrap; overflow:hidden;">${i.name}</div>
             </div>
         `).join('');
     }
 
-    async function loadDetail(slug) {
-        const res = await fetch(`${API_URL}/v1/api/phim/${slug}`);
+    async function search(k) {
+        const res = await fetch(`${API}/v1/api/tim-kiem?keyword=${k}`);
         const data = await res.json();
-        const movie = data.data.item;
-        document.getElementById('results-grid').innerHTML = '';
-        document.getElementById('detail-screen').style.display = 'block';
-        document.getElementById('movie-title').innerText = movie.name;
-        document.getElementById('playing-name').innerText = movie.name;
-
-        const eps = movie.episodes[0].server_data;
-        document.getElementById('episodes').innerHTML = eps.map(ep => `
-            <div id="ep-${ep.name}" class="ep-btn" 
-                 onclick="startPlay('${ep.link_m3u8}', '${ep.link_embed}', '${slug}', '${ep.name}')">Tập ${ep.name}</div>
-        `).join('');
+        render(data.data.items);
     }
 
-    // Phím tắt
-    document.addEventListener('keydown', (e) => {
-        if(e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
-    });
-</script>
+    async function loadDetail(slug) {
+        const res = await fetch(`${API}/phim/${slug}`);
+        const data = await res.json();
+        const m3u8 = data.episodes[0].server_data[0].link_m3u8;
+        
+        document.getElementById('video-container').style.display = 'block';
+        window.scrollTo({top: 0, behavior: 'smooth'});
 
+        if (dp) dp.destroy();
+        dp = new DPlayer({
+            container: document.getElementById('dplayer'),
+            autoplay: true,
+            video: { url: m3u8, type: 'hls' }
+        });
+    }
+
+    loadHome();
+</script>
 </body>
 </html>
