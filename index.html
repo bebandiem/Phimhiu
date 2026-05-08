@@ -1,837 +1,3 @@
-Gemini
-Hoàn thiện code HTML chạy React
-Cuộc trò chuyện mới
-Nội dung của tôi
-Sổ ghi chú
-
-Complete Guide to Beginner Photography and Camera Equipment
-Sổ ghi chú mới
-Gem
-Cuộc trò chuyện
-Hoàn thiện code HTML chạy React
-Vsmov.com: Cảnh báo về trang xem phim
-Giới thiệu tính năng Gems của Gemini
-Giảm Mỡ Bụng Hiệu Quả Cho Nam Giới
-Luận văn tốt nghiệp đại học là gì
-API trong lập trình web: Khái niệm
-Hướng dẫn tạo file Python
-Gợi Ý Dự Án Cùng Người Dùng
-Vi khuẩn HP: Triệu chứng và điều trị
-Khắc phục sọc xanh chế độ Pro
-Chụp ảnh bầu trời đêm bằng điện thoại
-Momen Xoắn: Khái Niệm Và Ứng Dụng
-Bạn đề xuất cho tôi GPU của AMD tương đương với 4060 của nvidia không
-So sánh máy ảnh và điện thoại chụp ảnh
-Công Giáo và Báp-tít: So Sánh
-Giới thiệu phim hoạt hình Rick and Morty
-Cách Khắc Phục Tụt Lợi Răng Miệng
-Tụt Lợi: Nguyên Nhân, Hồi Phục Và Phòng Ngừa
-Tiêu chảy sau ăn sáng: Giải thích cơ chế
-Chi Phí Thức Ăn Cho 100 Con Heo
-Cập Nhật Clash of Clans Tháng 4/2026
-Gym và Cardio: Khác biệt và Lợi ích
-Hỏi về việc làm còn dang dở
-Những Điều Thú Vị Về Cằm Con Người
-The Last of Us Part II Patch Notes
-Chip X3D AMD: Tối ưu cho Gaming
-Chọn dép vừa vặn cho người 1m78
-Hướng dẫn vũ khí cận chiến The Last of Us
-Giải thích quá trình tạo shader game
-Giải thích quá trình tạo shader The Last of Us
-Giải mã lá số tử vi 1998
-Mắt Sưng: Nguyên Nhân và Cách Xử Lý
-Hành lá ở Hàn Quốc: Trồng và Văn hóa
-Xác Định Phiên Bản HyperOS Indonesia
-
-Cài đặt và trợ giúp
-Trò chuyện với Gemini
-không chỉnh sửa, hãy hoàn thiện nốt đoạn code này để nó có thể hoạt động ở html
-
-Để hoàn thiện đoạn mã này và chạy được trên môi trường HTML/Trình duyệt, chúng ta cần thực hiện một số bước quan trọng vì đây là một component React sử dụng TypeScript, Tailwind CSS, Lucide Icons, và DPlayer.
-
-Dưới đây là file HTML hoàn chỉnh đã được tích hợp đầy đủ các thư viện cần thiết qua CDN (Babel, React, Tailwind, DPlayer, Lucide) để bạn có thể mở trực tiếp bằng trình duyệt.
-
-HTML
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU - Xem Phim Online</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.11/dist/framer-motion.js"></script>
-
-    <style>
-        :root { --primary: #ff4757; }
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        [data-theme='light'] .glass {
-            background: rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-        }
-        .text-primary { color: var(--primary); }
-        .bg-primary { background-color: var(--primary); }
-        .border-primary { border-color: var(--primary); }
-        .bg-glass { background: rgba(255, 255, 255, 0.1); }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { motion, AnimatePresence } = window.Motion; // Framer Motion qua CDN
-
-        // --- Mocking Lucide components for CDN version ---
-        const Icon = ({ name, size = 24, ...props }) => {
-            const [iconSvg, setIconSvg] = React.useState('');
-            React.useEffect(() => {
-                const svg = lucide.createIcons.icons[name];
-                // Đơn giản hóa việc hiển thị icon qua Lucide CDN
-            }, []);
-            // Cách nhanh nhất trong HTML là dùng thẻ i của lucide
-            return <i data-lucide={name} style={{width: size, height: size}} {...props}></i>;
-        };
-
-        // Re-mapping các icon từ Lucide
-        const Search = () => <i data-lucide="search"></i>;
-        const Moon = () => <i data-lucide="moon"></i>;
-        const Sun = () => <i data-lucide="sun"></i>;
-        const Monitor = () => <i data-lucide="monitor"></i>;
-        const Play = ({fill, size}) => <i data-lucide="play" style={{fill: fill, width: size}}></i>;
-        const HistoryIcon = () => <i data-lucide="history"></i>;
-        const X = () => <i data-lucide="x"></i>;
-        const RotateCcw = () => <i data-lucide="rotate-ccw"></i>;
-        const RotateCw = () => <i data-lucide="rotate-cw"></i>;
-        const SkipBack = () => <i data-lucide="skip-back"></i>;
-        const SkipForward = () => <i data-lucide="skip-forward"></i>;
-
-        // --- Utilities ---
-        function cn(...inputs) {
-            return inputs.filter(Boolean).join(' ');
-        }
-
-        const API_BASE = "https://phimapi.com/v1/api";
-        const IMG_CDN = "https://img.phimapi.com/";
-
-        function fixImg(url) {
-            if (!url) return 'https://via.placeholder.com/200x300?text=No+Image';
-            if (url.startsWith('http') || url.startsWith('//')) return url;
-            return IMG_CDN + url;
-        }
-
-        // --- Components ---
-        const MovieCard = ({ item }) => {
-            return (
-                <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => window.location.hash = `#/phim/${item.slug}`}
-                    className="movie-card group glass rounded-2xl overflow-hidden cursor-pointer relative"
-                >
-                    <img 
-                        src={fixImg(item.thumb_url)} 
-                        alt={item.name}
-                        className="w-full aspect-[2/3] object-cover bg-gray-900 group-hover:brightness-50 transition-all duration-300"
-                    />
-                    <div className="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-black via-transparent to-transparent opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <h3 className="font-bold text-sm truncate text-white">{item.name}</h3>
-                        {item.year && <p className="text-[10px] text-primary font-black mt-1 uppercase">{item.year}</p>}
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        <div className="bg-primary p-3 rounded-full shadow-xl">
-                            <Play fill="white" size={24} />
-                        </div>
-                    </div>
-                </motion.div>
-            );
-        };
-
-        function App() {
-            const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-            const [searchQuery, setSearchQuery] = useState('');
-            const [results, setResults] = useState([]);
-            const [currentMovie, setCurrentMovie] = useState(null);
-            const [history, setHistory] = useState(JSON.parse(localStorage.getItem('watchHistory') || '[]'));
-            const [playingEp, setPlayingEp] = useState(null);
-            const [currentEpIndex, setCurrentEpIndex] = useState(-1);
-            const [isTheater, setIsTheater] = useState(false);
-            const [loading, setLoading] = useState(false);
-            
-            const dpRef = useRef(null);
-            const playerInstance = useRef(null);
-            const iframeRef = useRef(null);
-            const [videoMode, setVideoMode] = useState(null);
-
-            useEffect(() => {
-                document.body.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-                lucide.createIcons(); // Refresh icons
-            }, [theme, results, currentMovie]);
-
-            useEffect(() => {
-                const handleHash = () => {
-                    const hash = window.location.hash;
-                    if (hash.startsWith('#/phim/')) {
-                        const slug = hash.replace('#/phim/', '');
-                        fetchMovieDetail(slug);
-                    } else {
-                        setCurrentMovie(null);
-                        setVideoMode(null);
-                        setPlayingEp(null);
-                        setCurrentEpIndex(-1);
-                    }
-                };
-                window.addEventListener('hashchange', handleHash);
-                handleHash();
-                return () => window.removeEventListener('hashchange', handleHash);
-            }, []);
-
-            const fetchMovieDetail = async (slug) => {
-                setLoading(true);
-                try {
-                    const resp = await fetch(`${API_BASE}/phim/${slug}`);
-                    const data = await resp.json();
-                    if (data.status) {
-                        const movie = data.data.item;
-                        setCurrentMovie(movie);
-                        setResults([]);
-                        
-                        const lastEp = localStorage.getItem(`last_ep_${slug}`);
-                        if (lastEp && movie.episodes?.[0]?.server_data) {
-                            const episodes = movie.episodes[0].server_data;
-                            const idx = episodes.findIndex(e => e.name === lastEp);
-                            if (idx !== -1) playEpisode(episodes[idx], movie, idx);
-                        }
-                    }
-                } catch (err) { console.error(err); } 
-                finally { setLoading(false); }
-            };
-
-            const handleSearch = async (e) => {
-                e.preventDefault();
-                if (!searchQuery.trim()) return;
-                setLoading(true);
-                try {
-                    const resp = await fetch(`${API_BASE}/tim-kiem?keyword=${searchQuery}`);
-                    const data = await resp.json();
-                    if (data.status) {
-                        setResults(data.data.items);
-                        setCurrentMovie(null);
-                        setVideoMode(null);
-                        window.location.hash = '';
-                    }
-                } catch (err) { console.error(err); } 
-                finally { setLoading(false); }
-            };
-
-            const playEpisode = (ep, movie, index) => {
-                setPlayingEp(ep.name);
-                setCurrentEpIndex(index);
-                localStorage.setItem(`last_ep_${movie.slug}`, ep.name);
-                
-                const newHistory = [
-                    { name: movie.name, slug: movie.slug, thumb: movie.thumb_url },
-                    ...history.filter(h => h.slug !== movie.slug)
-                ].slice(0, 12);
-                setHistory(newHistory);
-                localStorage.setItem('watchHistory', JSON.stringify(newHistory));
-
-                if (ep.link_m3u8) {
-                    setVideoMode('hls');
-                    setTimeout(() => {
-                        if (dpRef.current) {
-                            if (playerInstance.current) playerInstance.current.destroy();
-                            playerInstance.current = new DPlayer({
-                                container: dpRef.current,
-                                autoplay: true,
-                                video: { url: ep.link_m3u8, type: 'hls' },
-                                screenshot: true,
-                            });
-                        }
-                    }, 100);
-                } else {
-                    setVideoMode('embed');
-                    setTimeout(() => {
-                        if (iframeRef.current) iframeRef.current.src = ep.link_embed;
-                    }, 100);
-                }
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
-
-            const skipTime = (seconds) => {
-                if (playerInstance.current && videoMode === 'hls') {
-                    playerInstance.current.seek(playerInstance.current.video.currentTime + seconds);
-                }
-            };
-
-            const changeEpisode = (direction) => {
-                if (!currentMovie || !currentMovie.episodes?.[0]?.server_data) return;
-                const episodes = currentMovie.episodes[0].server_data;
-                const nextIdx = direction === 'next' ? currentEpIndex + 1 : currentEpIndex - 1;
-                if (nextIdx >= 0 && nextIdx < episodes.length) {
-                    playEpisode(episodes[nextIdx], currentMovie, nextIdx);
-                }
-            };
-
-            return (
-                <div className={cn(
-                    "min-h-screen transition-all duration-500",
-                    theme === 'dark' ? "bg-[#050505] text-white" : "bg-[#f8f9fa] text-[#1a1a1a]",
-                    isTheater && "bg-black"
-                )}>
-                    <div className={cn("container mx-auto px-4 py-8 max-w-6xl transition-opacity duration-500", isTheater && "opacity-0 pointer-events-none")}>
-                        <header className="flex justify-between items-center mb-10">
-                            <motion.h1 
-                                onClick={() => { window.location.hash = ''; setResults([]); setCurrentMovie(null); }}
-                                className="text-3xl font-black tracking-[8px] text-[#ff4757] cursor-pointer"
-                            >
-                                PHIMHIU
-                            </motion.h1>
-                            <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="p-2 hover:bg-glass rounded-full transition-colors">
-                                {theme === 'dark' ? <Sun /> : <Moon />}
-                            </button>
-                        </header>
-
-                        <div className="max-w-md mx-auto mb-12 relative group">
-                            <form onSubmit={handleSearch}>
-                                <input 
-                                    type="text" 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Tìm phim..."
-                                    className="w-full pl-12 pr-6 py-4 rounded-full glass focus:border-primary outline-none text-lg transition-all"
-                                />
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><Search /></div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div className="container mx-auto px-4 pb-20 max-w-6xl">
-                        <AnimatePresence mode="wait">
-                            {(videoMode || isTheater) && (
-                                <div className="space-y-4 mb-10">
-                                    <div className={cn(
-                                        "w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl relative",
-                                        isTheater && "fixed inset-0 z-[1000] rounded-none m-0 h-screen"
-                                    )}>
-                                        <div ref={dpRef} className={cn("w-full h-full", videoMode !== 'hls' && 'hidden')} />
-                                        {videoMode === 'embed' && <iframe ref={iframeRef} className="w-full h-full border-none" allowFullScreen />}
-                                        <button onClick={() => setIsTheater(!isTheater)} className="absolute bottom-6 right-6 z-[1001] bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg backdrop-blur-md text-xs font-bold text-white flex items-center gap-2">
-                                            <Monitor size={14} /> {isTheater ? 'Thoát' : 'Rạp phim'}
-                                        </button>
-                                    </div>
-                                    {!isTheater && (
-                                        <div className="glass p-4 rounded-2xl flex flex-wrap items-center justify-center gap-6">
-                                            <button onClick={() => changeEpisode('prev')} disabled={currentEpIndex <= 0} className="p-3 bg-white/5 rounded-xl hover:bg-primary"><SkipBack /></button>
-                                            <div className="px-4 py-2 bg-primary/20 rounded-lg border border-primary/30"><span className="text-sm font-black text-primary">TẬP: {playingEp}</span></div>
-                                            <button onClick={() => changeEpisode('next')} className="p-3 bg-white/5 rounded-xl hover:bg-primary"><SkipForward /></button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {!currentMovie && results.length > 0 && (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                                    {results.map((item, idx) => <MovieCard key={idx} item={item} />)}
-                                </div>
-                            )}
-
-                            {currentMovie && !isTheater && (
-                                <div className="glass p-8 rounded-3xl flex flex-col md:flex-row gap-10">
-                                    <img src={fixImg(currentMovie.thumb_url)} className="w-full md:w-[220px] rounded-2xl object-cover aspect-[2/3]" />
-                                    <div className="flex-1">
-                                        <h2 className="text-4xl font-bold mb-2">{currentMovie.name}</h2>
-                                        <p className="text-primary font-bold mb-6">{currentMovie.origin_name} • {currentMovie.year}</p>
-                                        <div className="text-gray-400 mb-8" dangerouslySetInnerHTML={{ __html: currentMovie.content }} />
-                                        <div className="flex flex-wrap gap-3">
-                                            {currentMovie.episodes?.[0]?.server_data.map((ep, idx) => (
-                                                <button key={idx} onClick={() => playEpisode(ep, currentMovie, idx)} className={cn("px-6 py-3 rounded-xl font-bold glass", playingEp === ep.name && "bg-primary")}>{ep.name}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {!currentMovie && results.length === 0 && !loading && (
-                                <div className="space-y-12">
-                                    {history.length > 0 && (
-                                        <section>
-                                            <h2 className="text-sm font-black tracking-widest text-primary uppercase mb-8">Vừa xem</h2>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                                                {history.map((item, idx) => <MovieCard key={idx} item={{...item, thumb_url: item.thumb}} />)}
-                                            </div>
-                                        </section>
-                                    )}
-                                    <div className="text-center py-20 opacity-50"><HistoryIcon /><p className="text-xl">Tìm phim bạn yêu thích</p></div>
-                                </div>
-                            )}
-                        </AnimatePresence>
-
-                        {loading && (
-                            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center">
-                                <div className="w-12 h-12 border-4 border-[#ff4757] border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
-Các thay đổi quan trọng để code chạy được:
-Thư viện qua CDN: Đã thêm các thẻ <script> cho React, Tailwind, DPlayer, và Framer Motion.
-
-Lucide Icons: Trong môi trường HTML thuần, việc import Lucide theo kiểu ES Module hơi phức tạp, nên mình đã chuyển sang dùng lucide.createIcons() để render các icon qua thẻ <i>.
-
-Framer Motion: Sử dụng window.Motion thay vì import trực tiếp.
-
-HLS.js: Cần thiết để DPlayer có thể phát được định dạng phim .m3u8 phổ biến trên các API phim.
-
-Babel: Sử dụng Babel Standalone để trình duyệt có thể hiểu được cú pháp JSX và TypeScript trực tiếp trong thẻ <script type="text/babel">.
-
-Hướng dẫn sử dụng: Bạn chỉ cần lưu đoạn mã trên vào một file (ví dụ index.html) và mở nó bằng bất kỳ trình duyệt nào.
-
-Tìm thông minh: Tìm kiếm phim nhanh theo tên, diễn viên hoặc đạo diễn.
-
-Overlay Controller (Lớp phủ điều khiển):
-
-Nhấn đúp để tìm kiếm: Nhấn vào 1/3 bên trái hoặc phải của trình phát để tua ngược/xuôi 10 giây (với định dạng HLS).
-
-Hiệu tua: Hiển thị biểu tượng và số giây trực tiếp ngay trên màn hình.
-
-Lịch sử xem & Lưu: Tự động ghi nhớ tập phim bạn đang xem và hiển thị trong mục "Tiếp tục xem lần trước".
-
-Giao diện Glassmorphism: Hiện đại thiết kế kính mờ, hỗ trợ cả Dark Mode và Light Mode.
-
-Chào bạn! Dựa trên yêu cầu của bạn, mình sẽ nâng cấp đoạn code HTML/React ở trên để tích hợp đầy đủ các tính năng: Tìm kiếm nâng cao, Cảm ứng Overlay (Double tap), Hiệu ứng tua phim, và Lưu lịch sử chi tiết.
-
-Dưới đây là phiên bản hoàn thiện, bạn có thể lưu thành file .html để chạy ngay:
-
-HTML
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU Pro - Trải nghiệm điện ảnh</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.11/dist/framer-motion.js"></script>
-
-    <style>
-        :root { --primary: #3b82f6; }
-        body { margin: 0; transition: background 0.5s ease; overflow-x: hidden; }
-        [data-theme='dark'] { background: #0a0a0a; color: white; }
-        [data-theme='light'] { background: #f4f7fa; color: #1a1a1a; }
-        
-        .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        [data-theme='light'] .glass {
-            background: rgba(0, 0, 0, 0.02);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        /* Hiệu ứng gợn sóng khi tua */
-        .skip-ripple {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 30%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            z-index: 50;
-            border-radius: 50%;
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { motion, AnimatePresence } = window.Motion;
-
-        const API_BASE = "https://phimapi.com/v1/api";
-        const IMG_CDN = "https://img.phimapi.com/";
-
-        // Component Icon Lucide
-        const Icon = ({ name, className = "" }) => {
-            useEffect(() => { lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} className={className}></i>;
-        };
-
-        function App() {
-            const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-            const [searchQuery, setSearchQuery] = useState('');
-            const [results, setResults] = useState([]);
-            const [currentMovie, setCurrentMovie] = useState(null);
-            const [history, setHistory] = useState(JSON.parse(localStorage.getItem('watchHistory') || '[]'));
-            const [playingEp, setPlayingEp] = useState(null);
-            const [currentEpIndex, setCurrentEpIndex] = useState(-1);
-            const [loading, setLoading] = useState(false);
-            const [skipLabel, setSkipLabel] = useState({ show: false, side: '', text: '' });
-            
-            const dpRef = useRef(null);
-            const playerInstance = useRef(null);
-            const [videoMode, setVideoMode] = useState(null);
-
-            useEffect(() => {
-                document.body.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-            }, [theme]);
-
-            // Xử lý Double Tap/Click để tua
-            const handleOverlayClick = (e) => {
-                if (videoMode !== 'hls' || !playerInstance.current) return;
-                
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const width = rect.width;
-
-                // Kiểm tra click vào 1/3 trái hoặc phải
-                if (x < width / 3) {
-                    performSkip(-10, 'left');
-                } else if (x > (width * 2) / 3) {
-                    performSkip(10, 'right');
-                }
-            };
-
-            const performSkip = (seconds, side) => {
-                const player = playerInstance.current;
-                player.seek(player.video.currentTime + seconds);
-                
-                // Hiển thị hiệu ứng
-                setSkipLabel({ show: true, side, text: `${seconds > 0 ? '+' : ''}${seconds}s` });
-                setTimeout(() => setSkipLabel({ show: false, side: '', text: '' }), 600);
-            };
-
-            const fetchMovieDetail = async (slug) => {
-                setLoading(true);
-                try {
-                    const resp = await fetch(`${API_BASE}/phim/${slug}`);
-                    const data = await resp.json();
-                    if (data.status) {
-                        const movie = data.data.item;
-                        setCurrentMovie(movie);
-                        setResults([]);
-                        
-                        // "Tiếp tục xem lần trước" - Lấy từ LocalStorage
-                        const savedData = JSON.parse(localStorage.getItem(`save_${slug}`));
-                        if (savedData && movie.episodes?.[0]?.server_data) {
-                            const episodes = movie.episodes[0].server_data;
-                            const idx = episodes.findIndex(e => e.name === savedData.epName);
-                            if (idx !== -1) playEpisode(episodes[idx], movie, idx);
-                        }
-                    }
-                } catch (err) { console.error(err); } finally { setLoading(false); }
-            };
-
-            const handleSearch = async (e) => {
-                e.preventDefault();
-                if (!searchQuery.trim()) return;
-                setLoading(true);
-                try {
-                    // Tìm kiếm thông minh hỗ trợ tên, đạo diễn, diễn viên (API của phimapi xử lý keyword)
-                    const resp = await fetch(`${API_BASE}/tim-kiem?keyword=${searchQuery}`);
-                    const data = await resp.json();
-                    if (data.status) {
-                        setResults(data.data.items);
-                        setCurrentMovie(null);
-                        window.location.hash = '';
-                    }
-                } catch (err) { console.error(err); } finally { setLoading(false); }
-            };
-
-            const playEpisode = (ep, movie, index) => {
-                setPlayingEp(ep.name);
-                setCurrentEpIndex(index);
-                
-                // Lưu lịch sử xem & Tập cuối
-                localStorage.setItem(`save_${movie.slug}`, JSON.stringify({ epName: ep.name, time: Date.now() }));
-                
-                const newHistory = [
-                    { name: movie.name, slug: movie.slug, thumb: movie.thumb_url, lastEp: ep.name },
-                    ...history.filter(h => h.slug !== movie.slug)
-                ].slice(0, 10);
-                setHistory(newHistory);
-                localStorage.setItem('watchHistory', JSON.stringify(newHistory));
-
-                if (ep.link_m3u8) {
-                    setVideoMode('hls');
-                    setTimeout(() => {
-                        if (dpRef.current) {
-                            if (playerInstance.current) playerInstance.current.destroy();
-                            playerInstance.current = new DPlayer({
-                                container: dpRef.current,
-                                autoplay: true,
-                                video: { url: ep.link_m3u8, type: 'hls' },
-                                theme: '#3b82f6',
-                            });
-                        }
-                    }, 100);
-                } else {
-                    setVideoMode('embed');
-                    setVideoMode('embed_link', ep.link_embed);
-                }
-            };
-
-            return (
-                <div className="min-h-screen p-4 md:p-8">
-                    {/* Header & Search */}
-                    <header className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-                        <h1 className="text-3xl font-black tracking-tighter text-blue-500 cursor-pointer" onClick={() => location.reload()}>PHIMHIU.</h1>
-                        
-                        <form onSubmit={handleSearch} className="relative w-full max-w-lg group">
-                            <input 
-                                type="text" 
-                                placeholder="Tìm phim, diễn viên, đạo diễn..."
-                                className="w-full pl-12 pr-6 py-3 rounded-2xl glass outline-none focus:ring-2 ring-blue-500 transition-all"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50"><Icon name="search" /></div>
-                        </form>
-
-                        <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="p-3 glass rounded-full">
-                            <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
-                        </button>
-                    </header>
-
-                    <main className="max-w-6xl mx-auto">
-                        <AnimatePresence mode="wait">
-                            {/* Player Section */}
-                            {currentMovie && (playingEp) && (
-                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-                                    <div className="relative group rounded-3xl overflow-hidden bg-black shadow-2xl aspect-video border border-white/10">
-                                        <div ref={dpRef} className={cn("w-full h-full", videoMode !== 'hls' && 'hidden')} />
-                                        {videoMode === 'embed' && <iframe src={currentMovie.episodes[0].server_data[currentEpIndex].link_embed} className="w-full h-full" allowFullScreen />}
-                                        
-                                        {/* Overlay Tua nhanh */}
-                                        <div 
-                                            className="absolute inset-0 z-40 flex cursor-pointer"
-                                            onDoubleClick={handleOverlayClick}
-                                        >
-                                            <div className="w-1/3 h-full"></div>
-                                            <div className="w-1/3 h-full cursor-default"></div>
-                                            <div className="w-1/3 h-full"></div>
-                                        </div>
-
-                                        {/* Hiệu ứng Label Tua */}
-                                        <AnimatePresence>
-                                            {skipLabel.show && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, scale: 0.5 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    className={cn(
-                                                        "skip-ripple",
-                                                        skipLabel.side === 'left' ? "left-0 rounded-r-full" : "right-0 rounded-l-full"
-                                                    )}
-                                                >
-                                                    <div className="text-center">
-                                                        <Icon name={skipLabel.side === 'left' ? "rewind" : "fast-forward"} className="mx-auto mb-2" />
-                                                        <span className="font-bold text-xl">{skipLabel.text}</span>
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                    
-                                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 glass p-4 rounded-2xl">
-                                        <h2 className="font-bold text-xl">{currentMovie.name} - <span className="text-blue-500">Tập {playingEp}</span></h2>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => playEpisode(currentMovie.episodes[0].server_data[currentEpIndex-1], currentMovie, currentEpIndex-1)} disabled={currentEpIndex <= 0} className="p-2 glass rounded-lg disabled:opacity-20"><Icon name="skip-back" /></button>
-                                            <button onClick={() => playEpisode(currentMovie.episodes[0].server_data[currentEpIndex+1], currentMovie, currentEpIndex+1)} disabled={!currentMovie.episodes[0].server_data[currentEpIndex+1]} className="p-2 glass rounded-lg disabled:opacity-20"><Icon name="skip-forward" /></button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-
-                            {/* Home / Results Grid */}
-                            {!currentMovie && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                    {results.length > 0 ? (
-                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                            {results.map((item) => (
-                                                <div key={item.slug} onClick={() => fetchMovieDetail(item.slug)} className="group cursor-pointer">
-                                                    <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-3 border border-white/5">
-                                                        <img src={item.thumb_url.startsWith('http') ? item.thumb_url : IMG_CDN + item.thumb_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                            <Icon name="play-circle" className="w-12 h-12 text-white" />
-                                                        </div>
-                                                    </div>
-                                                    <h3 className="font-bold truncate">{item.name}</h3>
-                                                    <p className="text-sm opacity-50">{item.year}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-12">
-                                            {/* Tiếp tục xem (Lịch sử) */}
-                                            {history.length > 0 && (
-                                                <section>
-                                                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Icon name="history" className="text-blue-500" /> Tiếp tục xem</h2>
-                                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                                        {history.map((item) => (
-                                                            <div key={item.slug} onClick={() => fetchMovieDetail(item.slug)} className="glass p-3 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-blue-500/10 transition-colors">
-                                                                <img src={item.thumb.startsWith('http') ? item.thumb : IMG_CDN + item.thumb} className="w-12 h-16 rounded-lg object-cover" />
-                                                                <div className="overflow-hidden">
-                                                                    <p className="font-bold text-sm truncate">{item.name}</p>
-                                                                    <p className="text-xs text-blue-500">Tập {item.lastEp}</p>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </section>
-                                            )}
-                                            
-                                            {/* Banner chào mừng */}
-                                            <div className="py-20 text-center glass rounded-[40px]">
-                                                <Icon name="clapperboard" className="w-16 h-16 mx-auto mb-4 text-blue-500 opacity-20" />
-                                                <h2 className="text-2xl font-bold opacity-30">Khám phá kho phim khổng lồ</h2>
-                                                <p className="opacity-20">Nhập tên phim để bắt đầu trải nghiệm</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            )}
-
-                            {/* Movie Detail (Danh sách tập) */}
-                            {currentMovie && !playingEp && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass p-8 rounded-[40px]">
-                                    <div className="flex flex-col md:flex-row gap-8">
-                                        <img src={currentMovie.thumb_url} className="w-full md:w-64 rounded-3xl shadow-2xl" />
-                                        <div className="flex-1">
-                                            <h2 className="text-4xl font-black mb-4">{currentMovie.name}</h2>
-                                            <div className="flex gap-4 mb-6 opacity-60 font-bold">
-                                                <span>{currentMovie.year}</span>
-                                                <span>{currentMovie.time}</span>
-                                                <span className="text-blue-500">{currentMovie.quality}</span>
-                                            </div>
-                                            <p className="text-lg opacity-80 leading-relaxed mb-8" dangerouslySetInnerHTML={{ __html: currentMovie.content }}></p>
-                                            
-                                            <h3 className="font-bold mb-4 uppercase tracking-widest text-sm opacity-50">Danh sách tập</h3>
-                                            <div className="flex flex-wrap gap-2">
-                                                {currentMovie.episodes[0].server_data.map((ep, idx) => (
-                                                    <button 
-                                                        key={idx} 
-                                                        onClick={() => playEpisode(ep, currentMovie, idx)}
-                                                        className="px-5 py-2 glass rounded-xl hover:bg-blue-500 hover:text-white transition-all font-bold"
-                                                    >
-                                                        {ep.name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </main>
-
-                    {/* Loading Overlay */}
-                    {loading && (
-                        <div className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-md flex items-center justify-center">
-                            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        function cn(...classes) { return classes.filter(Boolean).join(' '); }
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
-Các tính năng "Thông minh" đã được tích hợp:
-Overlay Controller (Nhấn đúp để tua):
-
-Mình đã tạo một lớp phủ (overlay) trong suốt trên trình phát video.
-
-Double Tap vào 1/3 bên trái: Tua ngược 10 giây.
-
-Double Tap vào 1/3 bên phải: Tua xuôi 10 giây.
-
-Hiệu ứng tua: Khi tua, một vòng cung mờ (ripple) sẽ xuất hiện cùng với số giây (+10s hoặc -10s) ngay trên màn hình trình phát để bạn dễ nhận biết.
-
-Lịch sử xem & Lưu trạng thái:
-
-Lưu tự động: Mỗi khi bạn nhấn vào một tập phim, hệ thống sẽ lưu lại slug của phim và tên tập vào localStorage.
-
-Tiếp tục xem: Khi bạn tìm lại đúng bộ phim đó, thay vì phải chọn lại tập từ đầu, hệ thống sẽ tự động mở tập bạn đã xem dở.
-
-Mục "Tiếp tục xem": Hiển thị ngay tại trang chủ để bạn truy cập nhanh các phim đang xem.
-
-Tìm kiếm thông minh:
-
-Ô tìm kiếm được đặt ở vị trí trung tâm, hỗ trợ API trả về kết quả theo nhiều tiêu chí (tên, diễn viên...).
-
-Giao diện kết quả tìm kiếm được thiết kế tối giản, tập trung vào hình ảnh (Poster).
-
-Thiết kế Glassmorphism:
-
-Sử dụng lớp nền mờ (backdrop-blur-md) và viền trắng siêu mỏng (border-white/10).
-
-Hỗ trợ Dark/Light mode đồng bộ thông qua biến data-theme.
-
-Sử dụng font chữ dày (Black/Bold) để tạo cảm giác hiện đại như các ứng dụng streaming cao cấp (Netflix, Apple TV).
-
-Lưu ý: Tính năng tua 10 giây bằng Double Tap chỉ hoạt động tốt nhất với định dạng HLS (m3u8) vì định dạng này cho phép can thiệp sâu vào luồng dữ liệu của DPlayer. Với iframe (nhúng), trình duyệt sẽ chặn các tương tác đè lên video để bảo mật.
-
-hãy bỏ tính năng rạp chiếu giúp mình, và lưu thành file html
-
-File HTML của bạn đã sẵn sàng. Tôi đã loại bỏ tính năng rạp chiếu (Theater Mode) và tối ưu hóa lại giao diện Glassmorphism để trông gọn gàng, hiện đại hơn.
-
-Các tính năng thông minh vẫn được giữ nguyên:
-
-Tìm kiếm thông minh: Theo tên, diễn viên, đạo diễn.
-
-Lịch sử xem: Tự động lưu tập đang xem dở vào mục "Tiếp tục xem".
-
-Overlay Controller: Nhấn đúp vào 1/3 bên trái/phải trình phát để tua 10 giây (kèm hiệu ứng hình ảnh).
-
-Chế độ Sáng/Tối: Tùy chỉnh theo ý thích.
-
-Biểu tượng HTML
- phimhiu_pro 
-HTML
-
-
-
-
-Gemini là AI và có thể mắc sai sót.
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -879,7 +45,7 @@ Gemini là AI và có thể mắc sai sót.
             border-radius: 50%;
         }
 
-        /* Custom scrollbar */
+        /* Tùy chỉnh thanh cuộn */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
@@ -895,6 +61,7 @@ Gemini là AI và có thể mắc sai sót.
         const API_BASE = "https://phimapi.com/v1/api";
         const IMG_CDN = "https://img.phimapi.com/";
 
+        // Component hiển thị Icon từ Lucide
         const Icon = ({ name, className = "" }) => {
             useEffect(() => { lucide.createIcons(); }, [name]);
             return <i data-lucide={name} className={className}></i>;
@@ -920,6 +87,7 @@ Gemini là AI và có thể mắc sai sót.
                 localStorage.setItem('theme', theme);
             }, [theme]);
 
+            // Tính năng Double Click để tua
             const handleOverlayClick = (e) => {
                 if (videoMode !== 'hls' || !playerInstance.current) return;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -950,6 +118,7 @@ Gemini là AI và có thể mắc sai sót.
                         setCurrentMovie(movie);
                         setResults([]);
                         
+                        // Kiểm tra xem có tập phim nào đang xem dở không
                         const savedData = JSON.parse(localStorage.getItem(`save_${slug}`));
                         if (savedData && movie.episodes?.[0]?.server_data) {
                             const episodes = movie.episodes[0].server_data;
@@ -971,7 +140,6 @@ Gemini là AI và có thể mắc sai sót.
                         setResults(data.data.items);
                         setCurrentMovie(null);
                         setPlayingEp(null);
-                        window.location.hash = '';
                     }
                 } catch (err) { console.error(err); } finally { setLoading(false); }
             };
@@ -979,8 +147,11 @@ Gemini là AI và có thể mắc sai sót.
             const playEpisode = (ep, movie, index) => {
                 setPlayingEp(ep.name);
                 setCurrentEpIndex(index);
+                
+                // Lưu tập hiện tại vào bộ nhớ
                 localStorage.setItem(`save_${movie.slug}`, JSON.stringify({ epName: ep.name, time: Date.now() }));
                 
+                // Cập nhật danh sách "Tiếp tục xem"
                 const newHistory = [
                     { name: movie.name, slug: movie.slug, thumb: movie.thumb_url, lastEp: ep.name },
                     ...history.filter(h => h.slug !== movie.slug)
@@ -1009,13 +180,14 @@ Gemini là AI và có thể mắc sai sót.
 
             return (
                 <div className="min-h-screen p-4 md:p-8">
+                    {/* Header */}
                     <header className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
                         <h1 className="text-3xl font-black tracking-tighter text-[#ff4757] cursor-pointer" onClick={() => { setResults([]); setCurrentMovie(null); setPlayingEp(null); setSearchQuery(''); }}>PHIMHIU.</h1>
                         
-                        <form onSubmit={handleSearch} className="relative w-full max-w-lg">
+                        <form onSubmit={handleSearch} className="relative w-full max-lg group">
                             <input 
                                 type="text" 
-                                placeholder="Tìm tên phim, diễn viên, đạo diễn..."
+                                placeholder="Tìm phim, diễn viên, đạo diễn..."
                                 className="w-full pl-12 pr-6 py-3 rounded-2xl glass outline-none focus:ring-2 ring-[#ff4757] transition-all"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1030,7 +202,7 @@ Gemini là AI và có thể mắc sai sót.
 
                     <main className="max-w-6xl mx-auto">
                         <AnimatePresence mode="wait">
-                            {/* Video Player Section */}
+                            {/* Trình phát Video */}
                             {currentMovie && playingEp && (
                                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
                                     <div className="relative group rounded-3xl overflow-hidden bg-black shadow-2xl aspect-video border border-white/10">
@@ -1043,14 +215,14 @@ Gemini là AI và có thể mắc sai sót.
                                             />
                                         )}
                                         
-                                        {/* Overlay Double Click Area */}
+                                        {/* Lớp phủ bắt sự kiện Double Click */}
                                         <div className="absolute inset-0 z-40 flex cursor-pointer" onDoubleClick={handleOverlayClick}>
                                             <div className="w-1/3 h-full"></div>
                                             <div className="w-1/3 h-full cursor-default"></div>
                                             <div className="w-1/3 h-full"></div>
                                         </div>
 
-                                        {/* Skip Visual Label */}
+                                        {/* Hiệu ứng Tua nhanh */}
                                         <AnimatePresence>
                                             {skipLabel.show && (
                                                 <motion.div 
@@ -1071,7 +243,7 @@ Gemini là AI và có thể mắc sai sót.
                                     <div className="mt-6 flex flex-wrap items-center justify-between gap-4 glass p-6 rounded-2xl">
                                         <div className="space-y-1">
                                             <h2 className="font-bold text-xl">{currentMovie.name}</h2>
-                                            <p className="text-sm font-bold text-[#ff4757]">Đang xem: Tập {playingEp}</p>
+                                            <p className="text-sm font-bold text-[#ff4757]">Đang phát: Tập {playingEp}</p>
                                         </div>
                                         <div className="flex gap-3">
                                             <button 
@@ -1089,7 +261,7 @@ Gemini là AI và có thể mắc sai sót.
                                 </motion.div>
                             )}
 
-                            {/* Movie Grid */}
+                            {/* Lưới phim kết quả tìm kiếm */}
                             {!currentMovie && results.length > 0 && (
                                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                                     {results.map((item) => (
@@ -1107,13 +279,13 @@ Gemini là AI và có thể mắc sai sót.
                                 </div>
                             )}
 
-                            {/* Home: History & Placeholder */}
+                            {/* Trang chủ: Lịch sử và Chào mừng */}
                             {!currentMovie && results.length === 0 && (
                                 <div className="space-y-12">
                                     {history.length > 0 && (
                                         <section>
                                             <h2 className="text-sm font-black tracking-widest text-[#ff4757] uppercase mb-6 flex items-center gap-2">
-                                                <Icon name="history" className="w-4 h-4" /> Tiếp tục xem
+                                                <Icon name="history" className="w-4 h-4" /> Tiếp tục xem lần trước
                                             </h2>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                                 {history.map((item) => (
@@ -1130,13 +302,13 @@ Gemini là AI và có thể mắc sai sót.
                                     )}
                                     <div className="py-24 text-center glass rounded-[40px] border-dashed">
                                         <Icon name="clapperboard" className="w-16 h-16 mx-auto mb-4 text-[#ff4757] opacity-20" />
-                                        <h2 className="text-2xl font-bold opacity-40">Chào mừng bạn trở lại</h2>
-                                        <p className="opacity-30 mt-2">Tìm tên phim, diễn viên hoặc đạo diễn để bắt đầu trải nghiệm</p>
+                                        <h2 className="text-2xl font-bold opacity-40">Tìm kiếm phim để bắt đầu</h2>
+                                        <p className="opacity-30 mt-2">Nhập tên phim, diễn viên hoặc đạo diễn vào ô tìm kiếm</p>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Detail Section */}
+                            {/* Chi tiết phim và chọn tập */}
                             {currentMovie && !playingEp && (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass p-8 rounded-[40px]">
                                     <div className="flex flex-col md:flex-row gap-10">
@@ -1146,7 +318,7 @@ Gemini là AI và có thể mắc sai sót.
                                             <div className="flex flex-wrap gap-4 mb-6 opacity-60 font-bold text-sm">
                                                 <span className="bg-white/10 px-3 py-1 rounded-lg">{currentMovie.year}</span>
                                                 <span className="bg-white/10 px-3 py-1 rounded-lg">{currentMovie.time}</span>
-                                                <span className="text-[#ff4757]">{currentMovie.quality}</span>
+                                                <span className="text-[#ff4757] font-bold">{currentMovie.quality}</span>
                                             </div>
                                             <div className="text-lg opacity-70 leading-relaxed mb-10 max-h-48 overflow-y-auto pr-4" dangerouslySetInnerHTML={{ __html: currentMovie.content }} />
                                             
@@ -1169,6 +341,7 @@ Gemini là AI và có thể mắc sai sót.
                         </AnimatePresence>
                     </main>
 
+                    {/* Hiệu ứng Loading */}
                     {loading && (
                         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center">
                             <div className="w-12 h-12 border-[6px] border-[#ff4757] border-t-transparent rounded-full animate-spin"></div>
@@ -1183,5 +356,3 @@ Gemini là AI và có thể mắc sai sót.
     </script>
 </body>
 </html>
-phimhiu_pro.html
-Đang hiển thị phimhiu_pro.html.
