@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PHIMHIU - Minimalist</title>
+    <!-- Thư viện hỗ trợ phát video HLS và giao diện DPlayer -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
@@ -13,48 +14,55 @@
             --bg: #0b0b0b; --text: #ececec; --primary: #e50914;
             --glass: rgba(255, 255, 255, 0.05); --border: rgba(255, 255, 255, 0.1);
         }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 20px; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
         .container { max-width: 900px; margin: auto; }
         
-        /* Tìm kiếm tối giản */
-        .search-box { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--glass); color: white; margin-bottom: 20px; }
-        
-        /* Kết quả tìm kiếm dạng text */
-        .search-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; }
+        /* Tìm kiếm */
+        .search-box { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--glass); color: white; margin-bottom: 20px; box-sizing: border-box; outline: none; }
+        .search-box:focus { border-color: var(--primary); }
+        .search-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; transition: 0.2s; }
         .search-item:hover { background: var(--glass); color: var(--primary); }
 
-        /* Video & Overlay */
-        #video-container { width: 100%; border-radius: 12px; overflow: hidden; display: none; position: relative; margin-bottom: 30px; aspect-ratio: 16/9; }
+        /* Video Player & Overlay */
+        #video-container { width: 100%; border-radius: 12px; overflow: hidden; display: none; position: relative; margin-bottom: 30px; aspect-ratio: 16/9; background: #000; }
         .player-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 10; background: rgba(0,0,0,0.4); pointer-events: none; transition: 0.3s; }
         .player-overlay.hidden { opacity: 0; }
         .controls-group { display: flex; gap: 30px; pointer-events: auto; }
-        .ov-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .ov-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; opacity: 0.8; }
+        .ov-btn:hover { opacity: 1; transform: scale(1.1); }
         .ov-btn.main { font-size: 50px; }
 
-        /* Lịch sử và Tập phim */
-        .section-title { color: var(--primary); font-size: 14px; letter-spacing: 2px; margin: 30px 0 15px; text-transform: uppercase; }
+        /* Typography & Buttons */
+        .section-title { color: var(--primary); font-size: 13px; letter-spacing: 2px; margin: 30px 0 15px; text-transform: uppercase; font-weight: bold; }
         .list-text { display: flex; flex-direction: column; gap: 5px; }
-        .history-item { padding: 8px 0; cursor: pointer; font-size: 15px; opacity: 0.8; }
-        .history-item:hover { opacity: 1; text-decoration: underline; }
-        .ep-btn { background: var(--glass); border: 1px solid var(--border); color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 5px; margin-bottom: 5px; }
-        .ep-btn.active { background: var(--primary); border-color: var(--primary); }
+        .history-item { padding: 8px 0; cursor: pointer; font-size: 15px; opacity: 0.7; }
+        .history-item:hover { opacity: 1; text-decoration: underline; color: var(--primary); }
+        
+        .ep-btn { background: var(--glass); border: 1px solid var(--border); color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 5px; margin-bottom: 5px; font-size: 14px; }
+        .ep-btn.active { background: var(--primary); border-color: var(--primary); font-weight: bold; }
+        
+        .resume-bar { background: var(--primary); padding: 12px; border-radius: 8px; margin-bottom: 20px; cursor: pointer; display: none; font-size: 14px; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="color:var(--primary); cursor:pointer" onclick="location.reload()">PHIMHIU</h1>
+    <h1 style="color:var(--primary); cursor:pointer; margin-bottom: 5px;" onclick="window.location.href=window.location.pathname">PHIMHIU</h1>
+    <p style="font-size: 12px; opacity: 0.5; margin-bottom: 20px;">Minimalist Video Interface</p>
     
-    <input type="text" id="searchInput" class="search-box" placeholder="Tìm phim, đạo diễn, diễn viên..." onkeypress="handleSearch(event)">
+    <div id="resume-watching" class="resume-bar"></div>
+
+    <input type="text" id="searchInput" class="search-box" placeholder="Tìm tên phim, diễn viên, đạo diễn..." onkeypress="handleSearch(event)">
 
     <div id="video-container">
         <div id="player-overlay" class="player-overlay">
             <div class="controls-group">
-                <button class="ov-btn" onclick="changeEpisode(-1)">⏮</button>
-                <button class="ov-btn" onclick="seekVideo(-10)">⟲</button>
+                <button class="ov-btn" onclick="changeEpisode(-1)" title="Tập trước">⏮</button>
+                <button class="ov-btn" onclick="seekVideo(-10)" title="Lùi 10s">⟲</button>
                 <button class="ov-btn main" id="playBtn" onclick="dp.toggle()">▶</button>
-                <button class="ov-btn" onclick="seekVideo(10)">⟳</button>
-                <button class="ov-btn" onclick="changeEpisode(1)">⏭</button>
+                <button class="ov-btn" onclick="seekVideo(10)" title="Tiến 10s">⟳</button>
+                <button class="ov-btn" onclick="changeEpisode(1)" title="Tập tiếp theo">⏭</button>
             </div>
         </div>
         <div id="dplayer"></div>
@@ -63,8 +71,8 @@
     <div id="results-list" class="list-text"></div>
 
     <div id="detail-screen" style="display:none">
-        <h2 id="m-title"></h2>
-        <div class="section-title">TẬP PHIM</div>
+        <h2 id="m-title" style="margin-bottom: 10px;"></h2>
+        <div class="section-title">DANH SÁCH TẬP</div>
         <div id="episodes"></div>
     </div>
 
@@ -75,79 +83,126 @@
 </div>
 
 <script>
-    let dp, currentEpisodes = [], currentIndex = -1, currentSlug = '', overlayTimer;
+    let dp, currentEpisodes = [], currentIndex = -1, currentSlug = '', currentMovieName = '', overlayTimer;
 
-    // --- KHỞI TẠO: LOAD LỊCH SỬ ---
-    window.onload = renderHistory;
+    // --- KHỞI TẠO HỆ THỐNG ---
+    window.onload = function() {
+        renderHistory();
+        checkSharedLink();
+        checkResumeWatching();
+    };
+
+    // --- QUẢN LÝ URL & CHIA SẺ ---
+    function updateURL(slug) {
+        const url = new URL(window.location);
+        url.searchParams.set('film', slug);
+        window.history.pushState({}, '', url);
+    }
+
+    function checkSharedLink() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const filmSlug = urlParams.get('film');
+        if (filmSlug) showDetail(filmSlug);
+    }
+
+    function copyShareLink() {
+        navigator.clipboard.writeText(window.location.href).then(() => alert("Đã sao chép liên kết chia sẻ!"));
+    }
+
+    // --- XEM TIẾP & LỊCH SỬ ---
+    function checkResumeWatching() {
+        const lastSeen = JSON.parse(localStorage.getItem('resume_watching'));
+        const resumeDiv = document.getElementById('resume-watching');
+        // Chỉ hiển thị nếu đang ở trang chủ (không có tham số film)
+        if (lastSeen && !new URLSearchParams(window.location.search).get('film')) {
+            resumeDiv.style.display = 'block';
+            resumeDiv.innerHTML = `Tiếp tục xem bộ phim cuối: <b>${lastSeen.name}</b>`;
+            resumeDiv.onclick = () => showDetail(lastSeen.slug);
+        } else {
+            resumeDiv.style.display = 'none';
+        }
+    }
 
     function renderHistory() {
         const history = JSON.parse(localStorage.getItem('phim_history') || '[]');
         const container = document.getElementById('history-list');
-        if (history.length === 0) {
-            container.innerHTML = '<div style="opacity:0.5">Chưa có lịch sử xem.</div>';
-            return;
-        }
-        container.innerHTML = history.map(item => `
+        container.innerHTML = history.length ? history.map(item => `
             <div class="history-item" onclick="showDetail('${item.slug}')">• ${item.name}</div>
-        `).reverse().join(''); // Hiện phim mới xem lên đầu
+        `).reverse().join('') : '<div style="opacity:0.4">Trống</div>';
     }
 
     function saveToHistory(name, slug) {
         let history = JSON.parse(localStorage.getItem('phim_history') || '[]');
-        history = history.filter(i => i.slug !== slug); // Tránh trùng lặp
+        history = history.filter(i => i.slug !== slug);
         history.push({ name, slug });
-        if (history.length > 10) history.shift(); // Giữ tối đa 10 phim
+        if (history.length > 10) history.shift();
         localStorage.setItem('phim_history', JSON.stringify(history));
         renderHistory();
     }
 
-    // --- TÌM KIẾM TỐI GIẢN ---
+    // --- TÌM KIẾM ---
     async function handleSearch(event) {
         if (event.key === 'Enter') {
             const query = event.target.value;
+            if (!query) return;
             const res = await fetch(`https://ophim1.com/v1/api/tim-kiem?keyword=${query}`);
             const data = await res.json();
             
-            // Ẩn các phần không liên quan
             document.getElementById('history-section').style.display = 'none';
             document.getElementById('detail-screen').style.display = 'none';
             document.getElementById('video-container').style.display = 'none';
+            document.getElementById('resume-watching').style.display = 'none';
+            document.title = "PHIMHIU - Minimalist";
 
-            // Hiển thị danh sách chữ (không ảnh)
             document.getElementById('results-list').innerHTML = data.data.items.map(item => `
                 <div class="search-item" onclick="showDetail('${item.slug}')">
                     <span>${item.name}</span>
                     <span style="opacity:0.5; font-size:12px;">${item.year}</span>
                 </div>
             `).join('');
+            // Xóa tham số trên URL khi tìm kiếm mới
+            window.history.pushState({}, '', window.location.pathname);
         }
     }
 
     // --- CHI TIẾT PHIM ---
     async function showDetail(slug) {
+        updateURL(slug);
         const res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
         const data = await res.json();
         const movie = data.data.item;
         
         currentSlug = slug;
+        currentMovieName = movie.name;
         currentEpisodes = movie.episodes[0].server_data;
-        saveToHistory(movie.name, slug); // Lưu vào lịch sử khi nhấn vào phim
+        
+        saveToHistory(movie.name, slug);
+        localStorage.setItem('resume_watching', JSON.stringify({ name: movie.name, slug: slug }));
 
         document.getElementById('results-list').innerHTML = '';
+        document.getElementById('history-section').style.display = 'none';
         document.getElementById('detail-screen').style.display = 'block';
-        document.getElementById('m-title').innerText = movie.name;
+        document.getElementById('resume-watching').style.display = 'none';
+        
+        document.getElementById('m-title').innerHTML = `
+            ${movie.name} 
+            <button onclick="copyShareLink()" style="font-size:11px; cursor:pointer; background:var(--glass); color:white; border:1px solid var(--border); border-radius:4px; padding:3px 10px; vertical-align: middle; margin-left:10px;">🔗 CHIA SẺ</button>
+        `;
 
         document.getElementById('episodes').innerHTML = currentEpisodes.map((ep, i) => `
             <button class="ep-btn" id="ep-${i}" onclick="playEpisode(${i})">${ep.name}</button>
         `).join('');
     }
 
-    // --- TRÌNH PHÁT ---
+    // --- TRÌNH PHÁT (DPLAYER) ---
     function playEpisode(index) {
         if (index < 0 || index >= currentEpisodes.length) return;
         currentIndex = index;
         const ep = currentEpisodes[index];
         document.getElementById('video-container').style.display = 'block';
+
+        // Cập nhật tiêu đề trình duyệt
+        document.title = `${currentMovieName} - Tập ${ep.name}`;
 
         if(dp) dp.destroy();
         dp = new DPlayer({
@@ -156,29 +211,42 @@
             video: { url: ep.link_m3u8, type: 'hls' }
         });
 
-        // Đồng bộ nút Play/Pause trên Overlay
+        // 1. Khôi phục thời gian đã xem
+        const timeKey = `time_${currentSlug}_${index}`;
+        const savedTime = localStorage.getItem(timeKey);
+        dp.on('loadedmetadata', () => {
+            if (savedTime) dp.seek(parseFloat(savedTime));
+        });
+
+        // 2. Lưu thời gian thực tế khi đang xem
+        dp.on('timeupdate', () => {
+            localStorage.setItem(timeKey, dp.video.currentTime);
+        });
+
+        // 3. Xử lý UI Overlay
         const pBtn = document.getElementById('playBtn');
         dp.on('play', () => { pBtn.innerText = '⏸'; hideOverlayDelayed(); });
         dp.on('pause', () => { pBtn.innerText = '▶'; showOverlay(); });
-        dp.on('ended', () => { if(currentIndex < currentEpisodes.length - 1) playEpisode(currentIndex + 1); });
+        
+        // 4. Tự động chuyển tập khi kết thúc
+        dp.on('ended', () => { 
+            if(currentIndex < currentEpisodes.length - 1) playEpisode(currentIndex + 1); 
+        });
 
+        // Cập nhật trạng thái nút tập
         document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('ep-' + index).classList.add('active');
+        const btn = document.getElementById('ep-' + index);
+        if(btn) btn.classList.add('active');
     }
 
-    // Logic Overlay
+    // --- ĐIỀU KHIỂN BỔ TRỢ ---
     function showOverlay() { document.getElementById('player-overlay').classList.remove('hidden'); }
     function hideOverlayDelayed() { 
         clearTimeout(overlayTimer);
-        overlayTimer = setTimeout(() => {
-            if(!dp.video.paused) document.getElementById('player-overlay').classList.add('hidden');
-        }, 2000);
+        overlayTimer = setTimeout(() => { if(!dp.video.paused) document.getElementById('player-overlay').classList.add('hidden'); }, 2500);
     }
-    document.getElementById('video-container').addEventListener('mousemove', () => {
-        showOverlay();
-        hideOverlayDelayed();
-    });
-
+    document.getElementById('video-container').addEventListener('mousemove', () => { showOverlay(); hideOverlayDelayed(); });
+    
     function seekVideo(sec) { dp.seek(dp.video.currentTime + sec); }
     function changeEpisode(step) { playEpisode(currentIndex + step); }
 </script>
