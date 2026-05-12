@@ -3,233 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHIMHIU - Minimalist</title>
-    <!-- Thư viện hỗ trợ HLS và Trình phát video DPlayer -->
+    <title>PHIMHIU- Nguồn Thuyết Minh & Vietsub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
-    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.11/dist/framer-motion.js"></script>
+
     <style>
-        :root {
-            --bg: #0b0b0b; --text: #ececec; --primary: #e50914;
-            --glass: rgba(255, 255, 255, 0.05); --border: rgba(255, 255, 255, 0.1);
-        }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
-        .container { max-width: 900px; margin: auto; }
+        :root { --primary: #e50914; }
+        body { background: #050505; color: #ececec; margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .netflix-gradient { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%); }
         
-        /* Tìm kiếm tối giản */
-        .search-box { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--glass); color: white; margin-bottom: 20px; box-sizing: border-box; outline: none; transition: 0.3s; }
-        .search-box:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
-        .search-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; }
-        .search-item:hover { color: var(--primary); background: var(--glass); }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-        /* Trình phát video & Overlay */
-        #video-container { 
-            width: 100%; border-radius: 12px; overflow: hidden; display: none; 
-            position: relative; margin-bottom: 30px; aspect-ratio: 16/9; background: #000;
-        }
-        .player-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 10; background: rgba(0,0,0,0.4); pointer-events: none; transition: 0.3s; }
-        .player-overlay.hidden { opacity: 0; }
-        .controls-group { display: flex; gap: 30px; pointer-events: auto; }
-        .ov-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; transition: 0.2s; }
-        .ov-btn:hover { transform: scale(1.1); color: var(--primary); }
-
-        /* Danh sách tập phim */
-        #episodes { display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 10px; background: var(--glass); border-radius: 8px; }
-        .ep-btn { background: var(--glass); border: 1px solid var(--border); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        .ep-btn.active { background: var(--primary); border-color: var(--primary); font-weight: bold; }
-
-        .section-title { color: var(--primary); font-size: 12px; letter-spacing: 2px; margin: 30px 0 10px; text-transform: uppercase; font-weight: bold; }
-        .resume-bar { background: var(--primary); padding: 12px; border-radius: 8px; margin-bottom: 20px; cursor: pointer; display: none; text-align: center; font-weight: bold; }
+        /* Ẩn control mặc định của DPlayer để dùng UI tùy chỉnh nếu cần */
+        .dplayer-controller { transition: opacity 0.3s ease; }
     </style>
 </head>
 <body>
+    <div id="root"></div>
 
-<div class="container">
-    <h1 style="color:var(--primary); cursor:pointer" onclick="window.location.href=window.location.pathname">PHIMHIU</h1>
-    
-    <div id="resume-watching" class="resume-bar"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence } = window.Motion;
 
-    <input type="text" id="searchInput" class="search-box" placeholder="Tìm phim, diễn viên, đạo diễn...">
+        const API_BASE = "https://phimapi.com/v1/api";
+        const IMG_CDN = "https://img.phimapi.com/";
 
-    <div id="video-container">
-        <div id="player-overlay" class="player-overlay">
-            <div class="controls-group">
-                <button class="ov-btn" onclick="changeEpisode(-1)">⏮</button>
-                <button class="ov-btn" onclick="seekVideo(-10)">⟲</button>
-                <button class="ov-btn" id="playBtn" style="font-size:50px" onclick="dp.toggle()">▶</button>
-                <button class="ov-btn" onclick="seekVideo(10)">⟳</button>
-                <button class="ov-btn" onclick="changeEpisode(1)">⏭</button>
-            </div>
-        </div>
-        <div id="dplayer"></div>
-    </div>
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => { lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} className={className} style={{width: size, height: size}}></i>;
+        };
 
-    <div id="results-list" class="list-text"></div>
+        function App() {
+            const [searchQuery, setSearchQuery] = useState('');
+            const [results, setResults] = useState([]);
+            const [currentMovie, setCurrentMovie] = useState(null);
+            const [history, setHistory] = useState(JSON.parse(localStorage.getItem('watchHistory') || '[]'));
+            const [loading, setLoading] = useState(false);
+            
+            // Player States
+            const [activeServerIdx, setActiveServerIdx] = useState(0);
+            const [playingEp, setPlayingEp] = useState(null);
+            const [currentEpIndex, setCurrentEpIndex] = useState(-1);
+            const [showUI, setShowUI] = useState(true);
+            
+            const dpRef = useRef(null);
+            const player = useRef(null);
+            const uiTimeout = useRef(null);
 
-    <div id="detail-screen" style="display:none">
-        <h2 id="m-title" style="margin-bottom: 20px;"></h2>
-        <div class="section-title">DANH SÁCH TẬP</div>
-        <div id="episodes"></div>
-    </div>
+            const activeUI = () => {
+                setShowUI(true);
+                clearTimeout(uiTimeout.current);
+                uiTimeout.current = setTimeout(() => setShowUI(false), 3000);
+            };
 
-    <div id="history-section">
-        <div class="section-title">XEM GẦN ĐÂY</div>
-        <div id="history-list"></div>
-    </div>
-</div>
+            const handleSearch = async (e) => {
+                e.preventDefault();
+                if (!searchQuery.trim()) return;
+                setLoading(true);
+                try {
+                    const resp = await fetch(`${API_BASE}/tim-kiem?keyword=${searchQuery}`);
+                    const data = await resp.json();
+                    setResults(data.data.items);
+                    setCurrentMovie(null);
+                    setPlayingEp(null);
+                } catch (err) { console.error(err); } finally { setLoading(false); }
+            };
 
-<script>
-    let dp, currentEpisodes = [], currentIndex = -1, currentSlug = '', currentMovieName = '', overlayTimer;
+            const fetchMovieDetail = async (slug) => {
+                setLoading(true);
+                try {
+                    const resp = await fetch(`${API_BASE}/phim/${slug}`);
+                    const data = await resp.json();
+                    if (data.status) {
+                        setCurrentMovie(data.data.item);
+                        setResults([]);
+                        setActiveServerIdx(0); // Mặc định server đầu tiên
+                    }
+                } catch (err) { console.error(err); } finally { setLoading(false); }
+            };
 
-    window.onload = function() {
-        renderHistory();
-        checkSharedLink();
-        checkResumeWatching();
-        setupKeyboardShortcuts();
-    };
+            const playEpisode = (ep, index, serverIdx = activeServerIdx) => {
+                setPlayingEp(ep.name);
+                setCurrentEpIndex(index);
+                setActiveServerIdx(serverIdx);
 
-    // 1. Quản lý phím tắt (Tránh xung đột với ô tìm kiếm)
-    function setupKeyboardShortcuts() {
-        window.addEventListener('keydown', (e) => {
-            if (!dp) return;
-            const isTyping = document.activeElement.tagName === 'INPUT';
-            if (isTyping) return;
+                // Lưu lịch sử
+                const newHistory = [
+                    { name: currentMovie.name, slug: currentMovie.slug, thumb: currentMovie.thumb_url },
+                    ...history.filter(h => h.slug !== currentMovie.slug)
+                ].slice(0, 12);
+                setHistory(newHistory);
+                localStorage.setItem('watchHistory', JSON.stringify(newHistory));
 
-            if (e.code === 'Space') { e.preventDefault(); dp.toggle(); }
-            if (e.code === 'ArrowRight') seekVideo(10);
-            if (e.code === 'ArrowLeft') seekVideo(-10);
-            if (e.code === 'KeyF') dp.fullScreen.toggle();
-        });
-    }
+                // Khởi tạo DPlayer
+                setTimeout(() => {
+                    if (dpRef.current) {
+                        if (player.current) player.current.destroy();
+                        player.current = new DPlayer({
+                            container: dpRef.current,
+                            autoplay: true,
+                            video: { url: ep.link_m3u8, type: 'hls' },
+                            theme: '#e50914'
+                        });
 
-    // 2. Xử lý Tìm kiếm
-    document.getElementById('searchInput').onkeypress = async (e) => {
-        if (e.key === 'Enter') {
-            const res = await fetch(`https://ophim1.com/v1/api/tim-kiem?keyword=${e.target.value}`);
-            const data = await res.json();
-            document.getElementById('results-list').innerHTML = data.data.items.map(i => `
-                <div class="search-item" onclick="showDetail('${i.slug}')">
-                    <span>${i.name}</span> <span style="opacity:0.5">${i.year}</span>
+                        // Ghi nhớ thời gian xem
+                        const timeKey = `time_${currentMovie.slug}_${index}`;
+                        const savedTime = localStorage.getItem(timeKey);
+                        if (savedTime) player.current.seek(parseFloat(savedTime));
+
+                        player.current.on('timeupdate', () => {
+                            localStorage.setItem(timeKey, player.current.video.currentTime);
+                        });
+                    }
+                }, 100);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <div className="min-h-screen" onMouseMove={activeUI}>
+                    {/* Header */}
+                    <nav className="p-6 flex flex-col md:flex-row justify-between items-center gap-6 sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-md">
+                        <h1 
+                            className="text-3xl font-black tracking-[6px] text-[#e50914] cursor-pointer" 
+                            onClick={() => { setResults([]); setCurrentMovie(null); setPlayingEp(null); }}
+                        >
+                            PHIMHIU
+                        </h1>
+                        
+                        <form onSubmit={handleSearch} className="relative w-full max-w-md group">
+                            <input 
+                                type="text" 
+                                placeholder="Tìm kiếm phim có thuyết minh..."
+                                className="w-full pl-12 pr-6 py-3 rounded-full glass focus:border-[#e50914] outline-none transition-all"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#e50914]" />
+                        </form>
+                    </nav>
+
+                    <main className="max-w-6xl mx-auto px-4 pb-20">
+                        <AnimatePresence mode="wait">
+                            {/* Trình phát Video */}
+                            {currentMovie && playingEp && (
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+                                    <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl ring-1 ring-white/10">
+                                        <div ref={dpRef} className="w-full h-full" />
+                                    </div>
+                                    
+                                    {/* Controller & Server Selection */}
+                                    <div className="mt-6 glass p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6">
+                                        <div className="flex flex-col gap-1">
+                                            <h2 className="text-xl font-bold">{currentMovie.name}</h2>
+                                            <p className="text-sm text-[#e50914] font-bold uppercase tracking-widest">Đang xem: Tập {playingEp}</p>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-4">
+                                            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl">
+                                                {currentMovie.episodes.map((sv, idx) => (
+                                                    <button 
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            const ep = sv.server_data[currentEpIndex];
+                                                            if (ep) playEpisode(ep, currentEpIndex, idx);
+                                                        }}
+                                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeServerIdx === idx ? 'bg-[#e50914] text-white shadow-lg' : 'hover:bg-white/10'}`}
+                                                    >
+                                                        {sv.server_name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    disabled={currentEpIndex <= 0}
+                                                    onClick={() => playEpisode(currentMovie.episodes[activeServerIdx].server_data[currentEpIndex-1], currentEpIndex-1)}
+                                                    className="p-3 glass rounded-xl hover:bg-[#e50914] disabled:opacity-20 transition-all"
+                                                ><Icon name="skip-back" /></button>
+                                                <button 
+                                                    disabled={currentEpIndex >= currentMovie.episodes[activeServerIdx].server_data.length - 1}
+                                                    onClick={() => playEpisode(currentMovie.episodes[activeServerIdx].server_data[currentEpIndex+1], currentEpIndex+1)}
+                                                    className="p-3 glass rounded-xl hover:bg-[#e50914] disabled:opacity-20 transition-all"
+                                                ><Icon name="skip-forward" /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* Danh sách kết quả */}
+                            {!currentMovie && results.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                                    {results.map((item) => (
+                                        <div key={item.slug} onClick={() => fetchMovieDetail(item.slug)} className="group cursor-pointer">
+                                            <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-3 ring-1 ring-white/10 group-hover:ring-[#e50914] transition-all">
+                                                <img src={item.thumb_url.startsWith('http') ? item.thumb_url : IMG_CDN + item.thumb_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <Icon name="play" size={40} className="fill-[#e50914] text-[#e50914]" />
+                                                </div>
+                                            </div>
+                                            <h3 className="font-bold text-sm truncate">{item.name}</h3>
+                                            <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold">{item.year}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Chi tiết phim */}
+                            {currentMovie && !playingEp && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass p-8 rounded-3xl">
+                                    <div className="flex flex-col md:flex-row gap-10">
+                                        <img src={currentMovie.thumb_url} className="w-full md:w-64 rounded-2xl shadow-2xl object-cover aspect-[2/3]" />
+                                        <div className="flex-1">
+                                            <h2 className="text-4xl font-bold mb-2">{currentMovie.name}</h2>
+                                            <p className="text-[#e50914] font-bold mb-6">{currentMovie.origin_name} • {currentMovie.year}</p>
+                                            <div className="text-gray-400 leading-relaxed mb-10" dangerouslySetInnerHTML={{ __html: currentMovie.content }} />
+                                            
+                                            <div className="space-y-6">
+                                                <div className="flex flex-wrap gap-3">
+                                                    <span className="text-xs font-black uppercase text-gray-500 tracking-widest block w-full">Chọn Server (Nguồn phim)</span>
+                                                    {currentMovie.episodes.map((sv, idx) => (
+                                                        <button 
+                                                            key={idx}
+                                                            onClick={() => setActiveServerIdx(idx)}
+                                                            className={`px-5 py-2 rounded-lg text-sm font-bold border transition-all ${activeServerIdx === idx ? 'border-[#e50914] bg-[#e50914]' : 'border-white/10 bg-white/5 hover:border-white/30'}`}
+                                                        >
+                                                            <Icon name="server" size={14} className="inline mr-2" />
+                                                            {sv.server_name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="text-xs font-black uppercase text-gray-500 tracking-widest block w-full">Danh sách tập</span>
+                                                    {currentMovie.episodes[activeServerIdx].server_data.map((ep, idx) => (
+                                                        <button 
+                                                            key={idx}
+                                                            onClick={() => playEpisode(ep, idx)}
+                                                            className="px-4 py-2 bg-white/5 hover:bg-[#e50914] rounded-lg transition-all text-sm font-bold border border-white/5"
+                                                        >
+                                                            {ep.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* Lịch sử và Trang chủ */}
+                            {!currentMovie && results.length === 0 && (
+                                <div className="space-y-12 py-10">
+                                    {history.length > 0 && (
+                                        <section>
+                                            <h2 className="text-xs font-black tracking-[4px] text-[#e50914] uppercase mb-8 flex items-center gap-2">
+                                                <Icon name="history" size={16} /> Vừa xem gần đây
+                                            </h2>
+                                            <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
+                                                {history.map((item) => (
+                                                    <div key={item.slug} onClick={() => fetchMovieDetail(item.slug)} className="group cursor-pointer">
+                                                        <img src={item.thumb} className="rounded-xl aspect-[2/3] object-cover ring-1 ring-white/10 group-hover:ring-[#e50914] transition-all" />
+                                                        <p className="mt-2 text-xs font-bold truncate opacity-60 group-hover:opacity-100">{item.name}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+                                    <div className="text-center opacity-20 py-20 border-2 border-dashed border-white/10 rounded-[40px]">
+                                        <Icon name="clapperboard" size={60} className="mx-auto mb-4" />
+                                        <p className="text-xl font-bold uppercase tracking-widest">Khám phá thế giới điện ảnh</p>
+                                    </div>
+                                </div>
+                            )}
+                        </AnimatePresence>
+                    </main>
+
+                    {/* Loading Spinner */}
+                    {loading && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center">
+                            <div className="w-12 h-12 border-4 border-[#e50914] border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
                 </div>
-            `).join('');
-            document.getElementById('detail-screen').style.display = 'none';
-            document.getElementById('video-container').style.display = 'none';
-            window.history.pushState({}, '', window.location.pathname);
-        }
-    };
-
-    // 3. Hiển thị thông tin & Phát phim ngay lập tức
-    async function showDetail(slug) {
-        updateURL(slug);
-        const res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
-        const data = await res.json();
-        const movie = data.data.item;
-        
-        currentSlug = slug;
-        currentMovieName = movie.name;
-        currentEpisodes = movie.episodes[0].server_data;
-        
-        saveToHistory(movie.name, slug);
-        document.getElementById('results-list').innerHTML = '';
-        document.getElementById('detail-screen').style.display = 'block';
-        document.getElementById('m-title').innerText = movie.name;
-        document.getElementById('resume-watching').style.display = 'none';
-
-        document.getElementById('episodes').innerHTML = currentEpisodes.map((ep, i) => `
-            <button class="ep-btn" id="ep-${i}" onclick="playEpisode(${i})">${ep.name}</button>
-        `).join('');
-
-        // Tự động phát: Ưu tiên tập đang xem dở, nếu không thì tập 1
-        const lastEp = localStorage.getItem(`last_ep_${slug}`);
-        const startIndex = (lastEp !== null) ? parseInt(lastEp) : 0;
-        if (currentEpisodes.length > 0) playEpisode(startIndex);
-    }
-
-    // 4. Trình phát video (DPlayer)
-    function playEpisode(index) {
-        if (index < 0 || index >= currentEpisodes.length) return;
-        currentIndex = index;
-        const ep = currentEpisodes[index];
-        localStorage.setItem(`last_ep_${currentSlug}`, index);
-        
-        document.getElementById('video-container').style.display = 'block';
-        document.title = `${currentMovieName} - Tập ${ep.name}`;
-
-        if(dp) dp.destroy();
-        dp = new DPlayer({
-            container: document.getElementById('dplayer'),
-            autoplay: true,
-            video: { url: ep.link_m3u8, type: 'hls' }
-        });
-
-        const timeKey = `time_${currentSlug}_${index}`;
-        dp.on('loadedmetadata', () => {
-            const t = localStorage.getItem(timeKey);
-            if (t) dp.seek(parseFloat(t));
-        });
-        dp.on('timeupdate', () => localStorage.setItem(timeKey, dp.video.currentTime));
-        
-        // UI: Active nút tập phim và cuộn đến nó
-        document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
-        const btn = document.getElementById('ep-' + index);
-        if(btn) {
-            btn.classList.add('active');
-            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            );
         }
 
-        dp.on('play', () => hideOverlayDelayed());
-        dp.on('ended', () => changeEpisode(1)); // Tự động chuyển tập
-    }
-
-    // 5. Các hàm bổ trợ (Lịch sử, URL, Điều khiển)
-    function updateURL(slug) {
-        const url = new URL(window.location);
-        url.searchParams.set('film', slug);
-        window.history.pushState({}, '', url);
-    }
-
-    function checkSharedLink() {
-        const slug = new URLSearchParams(window.location.search).get('film');
-        if (slug) showDetail(slug);
-    }
-
-    function checkResumeWatching() {
-        const last = JSON.parse(localStorage.getItem('resume_watching'));
-        if (last && !new URLSearchParams(window.location.search).get('film')) {
-            const div = document.getElementById('resume-watching');
-            div.style.display = 'block';
-            div.innerHTML = `Tiếp tục xem: ${last.name}`;
-            div.onclick = () => showDetail(last.slug);
-        }
-    }
-
-    function saveToHistory(name, slug) {
-        let h = JSON.parse(localStorage.getItem('phim_history') || '[]');
-        h = h.filter(i => i.slug !== slug);
-        h.push({name, slug});
-        localStorage.setItem('phim_history', JSON.stringify(h.slice(-10)));
-        localStorage.setItem('resume_watching', JSON.stringify({name, slug}));
-        renderHistory();
-    }
-
-    function renderHistory() {
-        const h = JSON.parse(localStorage.getItem('phim_history') || '[]');
-        document.getElementById('history-list').innerHTML = h.reverse().map(i => `
-            <div style="cursor:pointer; padding:5px 0; opacity:0.7" onclick="showDetail('${i.slug}')">• ${i.name}</div>
-        `).join('');
-    }
-
-    function seekVideo(s) { dp.seek(dp.video.currentTime + s); }
-    function changeEpisode(s) { playEpisode(currentIndex + s); }
-    function hideOverlayDelayed() { 
-        clearTimeout(overlayTimer);
-        overlayTimer = setTimeout(() => { if(!dp.video.paused) document.getElementById('player-overlay').classList.add('hidden'); }, 2000);
-    }
-    document.getElementById('video-container').addEventListener('mousemove', () => {
-        document.getElementById('player-overlay').classList.remove('hidden');
-        hideOverlayDelayed();
-    });
-</script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
